@@ -1,0 +1,643 @@
+<ion-header [translucent]="true">
+  <ion-toolbar class="glass-panel">
+    <div style="padding: 6px 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--app-text-color); display: flex; align-items: center;">
+          <ion-icon name="people" color="primary" style="margin-right: 8px; font-size: 24px;"></ion-icon>
+          {{ langService.t('roster_attendance') }}
+        </h1>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium); font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{{ langService.t('roll_call_ledger') }}</p>
+      </div>
+
+      <ion-button (click)="showSettingsModal.set(true)" fill="clear" color="primary" style="--padding-start: 4px; --padding-end: 4px; margin: 0;">
+        <ion-icon name="settings-outline" style="font-size: 22px;"></ion-icon>
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Decorative Glow -->
+  <div style="position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(48,209,88,0.05) 0%, rgba(0,0,0,0) 70%); top: 50px; right: -50px; pointer-events: none; z-index: -1;"></div>
+
+  <div class="ion-padding" style="padding-top: 8px;">
+    
+    <!-- Sub-tab segment bar -->
+    <ion-segment [value]="activeLabourTab()" (ionChange)="activeLabourTab.set($any($event.detail.value))" style="margin-bottom: 16px; --background: rgba(30, 33, 45, 0.4); border-radius: 12px; padding: 4px;">
+      <ion-segment-button value="roster">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('sub_tab_roster') }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="bookings">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('sub_tab_bookings') }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="payouts_ledger">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('sub_tab_daybook') }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <!-- ==================== 1. DAILY ROSTER & attendance VIEW ==================== -->
+    <div *ngIf="activeLabourTab() === 'roster'">
+      <!-- Roster Search & Filter Panel -->
+      <div class="glass-panel" style="padding: 12px; margin-bottom: 16px;">
+        <!-- Date Selector -->
+        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+          <span style="font-size: 13px; font-weight: 700; color: var(--app-text-color); display: flex; align-items: center;">
+            <ion-icon name="calendar" color="primary" style="margin-right: 8px; font-size: 18px;"></ion-icon>
+            {{ langService.t('attendance_date') }}
+          </span>
+          <ion-input type="date" [value]="selectedDate()" (ionChange)="onDateChange($event)" style="--background: transparent; color: var(--app-text-color); font-weight: 700; font-size: 14px; text-align: right; max-width: 160px; margin: 0; padding: 0;"></ion-input>
+        </div>
+
+        <ion-searchbar 
+          [value]="searchQuery()" 
+          (ionInput)="onSearchChange($event)"
+          [placeholder]="langService.t('search_placeholder')"
+          style="margin-bottom: 8px;"
+        ></ion-searchbar>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div>
+            <span style="font-size: 10px; font-weight: 700; color: var(--ion-color-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-left: 2px;">{{ langService.t('filter_site') }}</span>
+            <ion-select [value]="selectedSiteFilter()" (ionChange)="onSiteFilterChange($event)" interface="popover" style="width: 100%; margin-top: 4px; font-size: 12px; padding: 6px 10px;">
+              <ion-select-option value="All">{{ langService.t('all_sites') }}</ion-select-option>
+              <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
+                {{ s.name }}
+              </ion-select-option>
+            </ion-select>
+          </div>
+          <div>
+            <span style="font-size: 10px; font-weight: 700; color: var(--ion-color-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-left: 2px;">{{ langService.t('filter_trade') }}</span>
+            <ion-select [value]="selectedRoleFilter()" (ionChange)="onRoleFilterChange($event)" interface="popover" style="width: 100%; margin-top: 4px; font-size: 12px; padding: 6px 10px;">
+              <ion-select-option value="All">{{ langService.t('all_trades') }}</ion-select-option>
+              <ion-select-option value="Supervisor">Supervisor</ion-select-option>
+              <ion-select-option value="Mason">Mason</ion-select-option>
+              <ion-select-option value="Labour">Labour</ion-select-option>
+              <ion-select-option value="Plumber">Plumber</ion-select-option>
+              <ion-select-option value="Electrician">Electrician</ion-select-option>
+            </ion-select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Count Statistics -->
+      <div style="display: flex; gap: 10px; margin-bottom: 16px; margin-left: 4px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">
+          {{ langService.t('total') }}: <span style="color: var(--app-text-color);">{{ filteredWorkers().length }}</span> {{ langService.t('workers') }}
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">
+          • {{ langService.t('present') }}: <span style="color: var(--ion-color-success);">{{ presentCount() }}</span>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">
+          • {{ langService.t('absent') }}: <span style="color: var(--ion-color-danger);">{{ absentCount() }}</span>
+        </div>
+      </div>
+
+      <!-- Workers Roll Call List -->
+      <ion-list lines="none" style="background: transparent; padding: 0;">
+        <div class="glass-item hover-scale" style="padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column;" [style.opacity]="getWorkerStatusForSelectedDate(worker) === 'Not Called' ? '0.65' : '1'" *ngFor="let worker of filteredWorkers()">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <!-- Left: Profile and Details -->
+            <div style="display: flex; align-items: center; cursor: pointer;" (click)="viewWorkerDetails(worker)">
+              <ion-avatar style="width: 44px; height: 44px; margin-right: 12px; border: 1px solid rgba(255, 159, 10, 0.3);">
+                <img [src]="worker.avatar" alt="{{ worker.name }}" />
+              </ion-avatar>
+              <div>
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--app-text-color);">
+                  {{ worker.name }}
+                </h4>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium); display: flex; align-items: center; gap: 6px;">
+                  <ion-badge color="tertiary" style="font-size: 9px; padding: 2px 5px;">{{ worker.role }}</ion-badge>
+                  <ion-badge [color]="worker.employmentType === 'Permanent' ? 'primary' : 'warning'" style="font-size: 9px; padding: 2px 5px;">
+                    {{ worker.employmentType === 'Permanent' ? langService.t('permanent') : langService.t('casual') }}
+                  </ion-badge>
+                  <span>₹{{ worker.dailyRate }}/day</span>
+                </p>
+                <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-primary);">
+                  {{ getSiteName(worker.siteId) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Right: Pending Wages -->
+            <div style="text-align: right; cursor: pointer;" (click)="viewWorkerDetails(worker)">
+              <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('due_wages') }}</span>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--ion-color-primary); font-family: monospace;">
+                {{ formatCurrency(worker.balanceDue) }}
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-secondary);" *ngIf="worker.advancePaid > 0">
+                {{ langService.t('adv') }}: ₹{{ worker.advancePaid }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Case 1: Casual Worker NOT called to work yet -->
+          <div *ngIf="worker.employmentType === 'Casual' && getWorkerStatusForSelectedDate(worker) === 'Not Called'" style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 12px; padding-top: 8px;">
+            <span style="font-size: 11px; font-weight: 600; color: var(--ion-color-medium); font-style: italic;">{{ langService.t('release_worker') }}</span>
+            <ion-button color="success" size="small" style="font-weight: 700; --border-radius: 8px; margin: 0;" (click)="callWorker(worker)">
+              <ion-icon name="call" style="margin-right: 4px; font-size: 13px;"></ion-icon>
+              {{ langService.t('call_to_work') }}
+            </ion-button>
+          </div>
+
+          <!-- Case 2: Permanent Worker OR called Casual Worker -->
+          <div *ngIf="worker.employmentType === 'Permanent' || getWorkerStatusForSelectedDate(worker) !== 'Not Called'" style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-light); margin-top: 12px; padding-top: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--ion-color-medium);">{{ langService.t('today_mark') }}:</span>
+              <!-- Release button for Called Casual Workers -->
+              <ion-button *ngIf="worker.employmentType === 'Casual'" color="danger" fill="clear" size="small" style="--padding-start: 0; --padding-end: 0; font-size: 10px; font-weight: 700; margin: 0; height: auto;" (click)="releaseWorker(worker)">
+                ({{ langService.t('release_btn') }})
+              </ion-button>
+            </div>
+            
+            <div style="display: flex; gap: 6px;">
+              <!-- Present -->
+              <button 
+                (click)="setAttendance(worker, 'Present')"
+                [style.background]="getWorkerStatusForSelectedDate(worker) === 'Present' ? 'var(--ion-color-success)' : 'rgba(255,255,255,0.04)'"
+                [style.color]="getWorkerStatusForSelectedDate(worker) === 'Present' ? '#000000' : 'var(--ion-color-medium)'"
+                style="border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              >
+                P
+              </button>
+
+              <!-- Half Day -->
+              <button 
+                (click)="setAttendance(worker, 'Half Day')"
+                [style.background]="getWorkerStatusForSelectedDate(worker) === 'Half Day' ? 'var(--ion-color-warning)' : 'rgba(255,255,255,0.04)'"
+                [style.color]="getWorkerStatusForSelectedDate(worker) === 'Half Day' ? '#000000' : 'var(--ion-color-medium)'"
+                style="border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              >
+                HD
+              </button>
+
+              <!-- Overtime -->
+              <button 
+                (click)="setAttendance(worker, 'Overtime')"
+                [style.background]="getWorkerStatusForSelectedDate(worker) === 'Overtime' ? 'var(--ion-color-primary)' : 'rgba(255,255,255,0.04)'"
+                [style.color]="getWorkerStatusForSelectedDate(worker) === 'Overtime' ? '#000000' : 'var(--ion-color-medium)'"
+                style="border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              >
+                OT {{ getWorkerStatusForSelectedDate(worker) === 'Overtime' ? '(+' + getWorkerOvertimeHoursForSelectedDate(worker) + 'h)' : '' }}
+              </button>
+
+              <!-- Absent -->
+              <button 
+                (click)="setAttendance(worker, 'Absent')"
+                [style.background]="getWorkerStatusForSelectedDate(worker) === 'Absent' ? 'var(--ion-color-danger)' : 'rgba(255,255,255,0.04)'"
+                [style.color]="getWorkerStatusForSelectedDate(worker) === 'Absent' ? '#ffffff' : 'var(--ion-color-medium)'"
+                style="border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              >
+                A
+              </button>
+            </div>
+          </div>
+        </div>
+      </ion-list>
+    </div>
+
+    <!-- ==================== 2. ADVANCE LABOUR BOOKINGS ==================== -->
+    <div *ngIf="activeLabourTab() === 'bookings'">
+      <div class="glass-panel" style="padding: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-medium); letter-spacing: 0.5px;">{{ langService.t('worker_bookings_title') }}</span>
+          <h4 style="margin: 2px 0 0 0; font-size: 15px; font-weight: 700; color: var(--app-text-color);">Roster & Future Bookings</h4>
+        </div>
+        <ion-button color="primary" size="small" style="--border-radius: 8px; font-weight: 700;" (click)="openBookingModal()">
+          <ion-icon name="add" style="margin-right: 4px;"></ion-icon>
+          {{ langService.t('book_labour_btn') }}
+        </ion-button>
+      </div>
+
+      <div *ngIf="dataService.bookings().length === 0" style="text-align: center; padding: 32px; color: var(--ion-color-medium);">
+        <ion-icon name="alert-circle" style="font-size: 32px; color: var(--ion-color-medium); margin-bottom: 8px;"></ion-icon>
+        <p style="margin: 0; font-size: 13px;">{{ langService.t('no_bookings_tracked') }}</p>
+      </div>
+
+      <ion-list lines="none" style="background: transparent; padding: 0;">
+        <div class="glass-item hover-scale" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" *ngFor="let item of dataService.bookings()">
+          <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,159,10,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+              <ion-icon name="calendar" color="primary" style="font-size: 20px;"></ion-icon>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--app-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ item.workerName }}
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+                Rate: ₹{{ item.dailyRate }}/day • {{ item.siteName }}
+              </p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-primary); font-weight: 600;" *ngIf="item.remarks">
+                Remarks: {{ item.remarks }}
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; margin-left: 8px;">
+            <span style="font-size: 13px; font-weight: 700; color: var(--app-text-color); display: block;">
+              {{ item.bookingDate | date:'dd MMM yyyy' }}
+            </span>
+            <ion-button color="danger" fill="clear" size="small" style="margin: 4px 0 0 0; --padding-start: 4px; --padding-end: 4px;" (click)="cancelBooking(item.id)">
+              <ion-icon name="trash" style="font-size: 14px;"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ion-list>
+    </div>
+
+    <!-- ==================== 3. ADVANCE PAYMENTS LEDGER ==================== -->
+    <div *ngIf="activeLabourTab() === 'payouts_ledger'">
+      <div class="glass-panel" style="padding: 12px; margin-bottom: 16px;">
+        <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-medium); letter-spacing: 0.5px;">{{ langService.t('advance_cash_daybook') }}</span>
+        <h4 style="margin: 2px 0 0 0; font-size: 15px; font-weight: 700; color: var(--app-text-color);">Day-Wise Cash Advance Records</h4>
+      </div>
+
+      <div *ngIf="advanceTransactions().length === 0" style="text-align: center; padding: 32px; color: var(--ion-color-medium);">
+        <ion-icon name="alert-circle" style="font-size: 32px; color: var(--ion-color-medium); margin-bottom: 8px;"></ion-icon>
+        <p style="margin: 0; font-size: 13px;">{{ langService.t('no_adv_payments') }}</p>
+      </div>
+
+      <ion-list lines="none" style="background: transparent; padding: 0;">
+        <div class="glass-item hover-scale" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" *ngFor="let tx of advanceTransactions()">
+          <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(48,209,88,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+              <ion-icon name="cash" color="secondary" style="font-size: 20px;"></ion-icon>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--app-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ tx.workerName }}
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+                Advance Paid • {{ tx.paymentMode }}
+              </p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-primary);">
+                {{ getSiteName(tx.siteId) }}
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; margin-left: 8px;">
+            <span style="font-size: 14px; font-weight: 700; color: var(--ion-color-secondary); font-family: monospace; display: block;">
+              - {{ formatCurrency(tx.amount) }}
+            </span>
+            <span style="font-size: 10px; color: var(--ion-color-medium); display: block; margin-top: 2px;">
+              {{ tx.date | date:'dd MMM yyyy' }}
+            </span>
+            <ion-button color="danger" fill="clear" size="small" style="margin: 4px 0 0 0; --padding-start: 4px; --padding-end: 4px;" (click)="deleteAdvanceTransaction(tx.id)">
+              <ion-icon name="trash" style="font-size: 14px;"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ion-list>
+    </div>
+
+  </div>
+
+  <!-- OVERTIME QUANTITY DRAWER -->
+  <ion-modal [isOpen]="showOtModal()" (didDismiss)="closeOtModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('ot_title') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeOtModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;" *ngIf="otWorker()">
+          <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: var(--app-text-color);">OT: {{ otWorker()!.name }}</h3>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: var(--ion-color-medium);">
+            {{ langService.t('ot_desc') }} (₹{{ (otWorker()!.dailyRate / 8) | number:'1.0-0' }} per hour).
+          </p>
+
+          <div style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('ot_hours') }}</label>
+            <ion-select [(ngModel)]="otHours" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option [value]="1">1 Hour</ion-select-option>
+              <ion-select-option [value]="2">2 Hours (Standard)</ion-select-option>
+              <ion-select-option [value]="3">3 Hours</ion-select-option>
+              <ion-select-option [value]="4">4 Hours (Double Shift)</ion-select-option>
+            </ion-select>
+          </div>
+
+          <div style="display: flex; gap: 12px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="closeOtModal()">
+              {{ langService.t('cancel') }}
+            </ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitOt()">
+              {{ langService.t('save_ot') }}
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: WORKER DETAILS & ACCOUNTING LEDGER & MONTHLY ATTENDANCE -->
+  <ion-modal [isOpen]="showDetailModal()" (didDismiss)="closeDetailModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('labour_ledger') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeDetailModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div *ngIf="selectedWorker()">
+          <!-- Profile Card -->
+          <div class="glass-panel" style="padding: 16px; display: flex; align-items: center; margin-bottom: 16px; margin-top: 10px;">
+            <ion-avatar style="width: 60px; height: 60px; margin-right: 16px; border: 2px solid var(--ion-color-primary);">
+              <img [src]="selectedWorker()!.avatar" alt="{{ selectedWorker()!.name }}" />
+            </ion-avatar>
+            <div>
+              <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--app-text-color);">{{ selectedWorker()!.name }}</h2>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--ion-color-medium);">
+                {{ selectedWorker()!.role }} • Daily Rate: ₹{{ selectedWorker()!.dailyRate }}
+              </p>
+              <!-- Contact Buttons -->
+              <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <a href="tel:{{ selectedWorker()!.phone }}" style="display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); color: var(--ion-color-primary); width: 30px; height: 30px; border-radius: 50%; font-size: 16px; text-decoration: none;">
+                  <ion-icon name="call"></ion-icon>
+                </a>
+                <a href="https://wa.me/{{ selectedWorker()!.phone.replace(' ', '') }}" target="_blank" style="display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); color: #30d158; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; text-decoration: none;">
+                  <ion-icon name="logo-whatsapp"></ion-icon>
+                </a>
+                <span style="font-size: 11px; align-self: center; color: var(--ion-color-medium);">{{ selectedWorker()!.phone }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accounting Balance Box -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div class="glass-panel" style="padding: 12px; border-left: 4px solid var(--ion-color-primary);">
+              <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('wages_outstanding') }}</span>
+              <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">
+                {{ formatCurrency(selectedWorker()!.balanceDue) }}
+              </h3>
+            </div>
+            <div class="glass-panel" style="padding: 12px; border-left: 4px solid var(--ion-color-secondary);">
+              <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('advance_paid') }}</span>
+              <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">
+                {{ formatCurrency(selectedWorker()!.advancePaid) }}
+              </h3>
+            </div>
+          </div>
+
+          <!-- Monthly Attendance Grid -->
+          <div class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
+            <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 0;">
+              {{ langService.t('monthly_attendance_grid') }}
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-bottom: 12px;">
+              <div *ngFor="let dayName of ['M', 'T', 'W', 'T', 'F', 'S', 'S']" style="font-size: 10px; font-weight: 700; color: var(--ion-color-medium); padding-bottom: 4px;">
+                {{ dayName }}
+              </div>
+               <div *ngFor="let day of getMonthDays()" 
+                    [style.background]="getAttendanceBgColor(selectedWorker()!.id, day)"
+                    [style.color]="getAttendanceTextColor(selectedWorker()!.id, day)"
+                    [style.border]="day === getCurrentDay() ? '1px solid var(--ion-color-primary)' : 'none'"
+                    style="border-radius: 8px; padding: 6px 0; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 38px; line-height: 1.1;">
+                <span>{{ day }}</span>
+                <span style="font-size: 8px; font-weight: 800;" *ngIf="getAttendanceStatusShort(selectedWorker()!.id, day) as sh">
+                  {{ sh }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; font-size: 10px;">
+              <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+                <span style="width: 8px; height: 8px; background: rgba(48,209,88,0.15); border-radius: 2px;"></span> P
+              </span>
+              <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+                <span style="width: 8px; height: 8px; background: rgba(255,69,58,0.15); border-radius: 2px;"></span> A
+              </span>
+              <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+                <span style="width: 8px; height: 8px; background: rgba(255,214,10,0.15); border-radius: 2px;"></span> HD
+              </span>
+              <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+                <span style="width: 8px; height: 8px; background: rgba(100,210,255,0.15); border-radius: 2px;"></span> OT
+              </span>
+            </div>
+          </div>
+
+          <!-- Quick Payout Module -->
+          <div class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
+            <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-primary); margin: 0 0 12px 0;">{{ langService.t('record_payout') }}</h3>
+            
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; align-items: flex-end;">
+              <div>
+                <label style="font-size: 10px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase;">{{ langService.t('payment_amt') }}</label>
+                <ion-input type="number" [value]="paymentAmount()" (ionInput)="paymentAmount.set(+$event.detail.value!)" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 8px; border: 1px solid var(--border-light); margin-top: 4px; color: var(--app-text-color); padding: 6px 10px; font-size: 14px;"></ion-input>
+              </div>
+              <div>
+                <label style="font-size: 10px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase;">{{ langService.t('payment_mode') }}</label>
+                <ion-select [value]="paymentMode()" (ionChange)="paymentMode.set($event.detail.value)" interface="popover" style="width: 100%; margin-top: 4px; font-size: 12px; padding: 6px 10px;">
+                  <ion-select-option value="UPI">UPI</ion-select-option>
+                  <ion-select-option value="Cash">Cash</ion-select-option>
+                  <ion-select-option value="Bank Transfer">Bank</ion-select-option>
+                </ion-select>
+              </div>
+            </div>
+
+            <ion-button color="success" expand="block" style="margin-top: 14px; --border-radius: 10px; font-weight: 700;" (click)="submitDetailPayment()" [disabled]="paymentAmount() <= 0">
+              <ion-icon name="cash" style="margin-right: 6px;"></ion-icon>
+              {{ langService.t('clear_wages') }}
+            </ion-button>
+          </div>
+
+          <!-- Transaction History List -->
+          <div class="glass-panel" style="padding: 16px;">
+            <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 0;">{{ langService.t('ledger_history') }}</h3>
+            
+            <div *ngIf="getWorkerTransactions(selectedWorker()!.id).length === 0" style="text-align: center; padding: 16px; color: var(--ion-color-medium); font-size: 13px;">
+              {{ langService.t('no_past_tx') }}
+            </div>
+
+            <ion-list lines="none" style="background: transparent; padding: 0;">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-light); padding: 8px 0;" *ngFor="let tx of getWorkerTransactions(selectedWorker()!.id)">
+                <div>
+                  <h4 style="margin: 0; font-size: 13px; font-weight: 700; color: var(--app-text-color);">{{ tx.type === 'Wage Payment' ? langService.t('wage_payment') : langService.t('adv') }}</h4>
+                  <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">{{ tx.paymentMode }} • {{ tx.date | date:'dd MMM yyyy' }}</p>
+                </div>
+                <div style="text-align: right;">
+                  <span style="font-size: 13px; font-weight: 700; color: var(--ion-color-secondary); font-family: monospace;">
+                    - ₹{{ tx.amount }}
+                  </span>
+                </div>
+              </div>
+            </ion-list>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: CREATE ADVANCE LABOUR BOOKING -->
+  <ion-modal [isOpen]="showBookingModal()" (didDismiss)="showBookingModal.set(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('booking_modal_title') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="showBookingModal.set(false)">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--ion-color-medium);">
+            Schedule and book construction workers in advance for future dates and specific sites.
+          </p>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('select_worker') }}</label>
+            <ion-select [(ngModel)]="bookingWorkerId" (ionChange)="onBookingWorkerChange($event)" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option *ngFor="let w of dataService.workers()" [value]="w.id">
+                {{ w.name }} ({{ w.role }})
+              </ion-select-option>
+            </ion-select>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('filter_site') }}</label>
+            <ion-select [(ngModel)]="bookingSiteId" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
+                {{ s.name }}
+              </ion-select-option>
+            </ion-select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('booking_date') }}</label>
+              <ion-input type="date" [(ngModel)]="bookingDate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            </div>
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">Rate per Day (₹)</label>
+              <ion-input type="number" [(ngModel)]="bookingRate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('remarks') }}</label>
+            <ion-input [(ngModel)]="bookingRemarks" placeholder="e.g. Concrete mix reinforcement" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 10px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="showBookingModal.set(false)">
+              {{ langService.t('cancel') }}
+            </ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitBooking()">
+              {{ langService.t('book_labour_btn') }}
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: SETTINGS & LANGUAGE SELECTOR -->
+  <ion-modal [isOpen]="showSettingsModal()" (didDismiss)="showSettingsModal.set(false)">
+    <ng-template>
+      <app-settings-modal (dismiss)="showSettingsModal.set(false)"></app-settings-modal>
+    </ng-template>
+  </ion-modal>
+
+  <!-- FAB to Add Labour (only visible in roster sub-tab) -->
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end" *ngIf="activeLabourTab() === 'roster'">
+    <ion-fab-button (click)="openAddWorkerModal()" color="primary" style="--box-shadow: 0 4px 16px rgba(48,209,88,0.3);">
+      <ion-icon name="person-add" style="font-size: 22px; color: #000000;"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- MODAL: CREATE / ADD LABOUR TO SITE -->
+  <ion-modal [isOpen]="showAddWorkerModal()" (didDismiss)="showAddWorkerModal.set(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('add_labour') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="showAddWorkerModal.set(false)">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--ion-color-medium);">
+            {{ langService.t('enter_worker_details') }}
+          </p>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('worker_name') }}</label>
+            <ion-input [(ngModel)]="newWorkerName" placeholder="e.g. Ram Singh" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('phone_number') }}</label>
+            <ion-input type="tel" [(ngModel)]="newWorkerPhone" placeholder="e.g. +91 98765 43210" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('select_role') }}</label>
+            <ion-select [(ngModel)]="newWorkerRole" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option value="Labour">Labour</ion-select-option>
+              <ion-select-option value="Mason">Mason</ion-select-option>
+              <ion-select-option value="Supervisor">Supervisor</ion-select-option>
+              <ion-select-option value="Electrician">Electrician</ion-select-option>
+              <ion-select-option value="Plumber">Plumber</ion-select-option>
+              <ion-select-option value="Carpenter">Carpenter</ion-select-option>
+            </ion-select>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('select_site') }}</label>
+            <ion-select [(ngModel)]="newWorkerSiteId" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
+                {{ s.name }}
+              </ion-select-option>
+            </ion-select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('daily_wage_rate') }}</label>
+              <ion-input type="number" [(ngModel)]="newWorkerRate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            </div>
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('employment_type') }}</label>
+              <ion-select [(ngModel)]="newWorkerType" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+                <ion-select-option value="Permanent">{{ langService.t('permanent') }}</ion-select-option>
+                <ion-select-option value="Casual">{{ langService.t('casual') }}</ion-select-option>
+              </ion-select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="showAddWorkerModal.set(false)">
+              {{ langService.t('cancel') }}
+            </ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitAddWorker()">
+              {{ langService.t('add_labour') }}
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

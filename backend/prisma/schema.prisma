@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model ConstructionSite {
+  id             String              @id @default(uuid())
+  name           String
+  location       String
+  budget         Float
+  spentWages     Float               @default(0)
+  spentMaterials Float               @default(0)
+  spentRentals   Float               @default(0)
+  otherExpenses  Float               @default(0)
+  totalExpenses  Float               @default(0)
+  supervisorName String
+  workers        Worker[]
+  attendance     AttendanceRecord[]
+  materials      MaterialInventory[]
+  deliveries     MaterialDelivery[]
+  rentals        RentalMaterial[]
+  transactions   Transaction[]
+  bookings       LabourBooking[]
+}
+
+model Worker {
+  id                String             @id @default(uuid())
+  name              String
+  role              String
+  dailyRate         Float
+  siteId            String
+  site              ConstructionSite   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  advancePaid       Float              @default(0)
+  balanceDue        Float              @default(0)
+  statusToday       String             @default("Not Marked")
+  overtimeHours     Float              @default(0)
+  phone             String
+  avatar            String
+  employmentType    String
+  attendanceRecords AttendanceRecord[]
+  transactions      Transaction[]
+  bookings          LabourBooking[]
+}
+
+model AttendanceRecord {
+  id            String           @id @default(uuid())
+  date          String
+  workerId      String
+  worker        Worker           @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  siteId        String
+  site          ConstructionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  status        String
+  overtimeHours Float            @default(0)
+  wageEarned    Float            @default(0)
+}
+
+model MaterialInventory {
+  id                String           @id @default(uuid())
+  siteId            String
+  site              ConstructionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name              String
+  unit              String
+  stock             Float
+  lowStockThreshold Float            @default(10)
+  lastUpdated       String
+}
+
+model MaterialDelivery {
+  id           String           @id @default(uuid())
+  siteId       String
+  site         ConstructionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  materialName String
+  supplierName String
+  quantity     Float
+  unit         String
+  ratePerUnit  Float
+  totalAmount  Float
+  status       String
+  date         String
+}
+
+model RentalMaterial {
+  id           String           @id @default(uuid())
+  siteId       String
+  site         ConstructionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name         String
+  size         String
+  quantity     Float
+  ratePerDay   Float
+  supplierName String
+  startDate    String
+  endDate      String?
+}
+
+model Transaction {
+  id          String           @id @default(uuid())
+  workerId    String
+  worker      Worker           @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  workerName  String
+  siteId      String
+  site        ConstructionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String
+  date        String
+  paymentMode String
+}
+
+model LabourBooking {
+  id          String           @id @default(uuid())
+  workerId    String
+  worker      Worker           @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  workerName  String
+  siteId      String
+  site        ConstructionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  siteName    String
+  bookingDate String
+  dailyRate   Float
+  remarks     String
+}

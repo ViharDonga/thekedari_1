@@ -1,0 +1,332 @@
+<ion-header [translucent]="true">
+  <ion-toolbar class="glass-panel">
+    <div style="padding: 6px 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--app-text-color); display: flex; align-items: center;">
+          <ion-icon name="cube" color="primary" style="margin-right: 8px; font-size: 24px;"></ion-icon>
+          {{ langService.t('materials_stock') }}
+        </h1>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium); font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{{ langService.t('supply_tracker') }}</p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="site-selector-wrapper">
+          <ion-select 
+            [value]="dataService.activeSiteId()" 
+            interface="popover" 
+            (ionChange)="onSiteChange($event)"
+            toggleIcon="chevron-down"
+            style="min-width: 130px; font-size: 12px; padding: 6px 10px;"
+          >
+            <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
+              {{ s.name }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+
+        <ion-button (click)="showSettingsModal.set(true)" fill="clear" color="primary" style="--padding-start: 4px; --padding-end: 4px; margin: 0;">
+          <ion-icon name="settings-outline" style="font-size: 22px;"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Decorative Glow -->
+  <div style="position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,159,10,0.04) 0%, rgba(0,0,0,0) 70%); bottom: 50px; left: -50px; pointer-events: none; z-index: -1;"></div>
+
+  <div class="ion-padding" style="padding-top: 8px;">
+    <!-- Active Site Display Banner -->
+    <div class="glass-panel" style="padding: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-medium); letter-spacing: 0.5px;">{{ langService.t('current_site') }}</span>
+        <h4 style="margin: 2px 0 0 0; font-size: 15px; font-weight: 700; color: var(--app-text-color);">{{ dataService.activeSite().name }}</h4>
+      </div>
+      <ion-button color="primary" size="small" style="--border-radius: 8px; font-weight: 700;" (click)="openAddModal()">
+        <ion-icon name="add" style="margin-right: 4px;"></ion-icon>
+        {{ langService.t('log_delivery') }}
+      </ion-button>
+    </div>
+
+    <!-- Segment Switcher for Consumables vs Rentals -->
+    <ion-segment [value]="activeMaterialsSegment()" (ionChange)="activeMaterialsSegment.set($any($event.detail.value))" style="margin-bottom: 16px; --background: rgba(30, 33, 45, 0.4); border-radius: 12px; padding: 4px;">
+      <ion-segment-button value="stock">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('stock_levels') }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="rentals">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('rental_materials') }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <!-- ==================== 1. CONSUMABLE STOCK LEVEL VIEW ==================== -->
+    <div *ngIf="activeMaterialsSegment() === 'stock'">
+      <!-- Inventory Cards Section -->
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 4px;">{{ langService.t('stock_levels') }}</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div 
+            class="glass-panel hover-scale" 
+            [style.border-color]="isLowStock(item) ? 'rgba(255, 69, 58, 0.4)' : 'var(--border-light)'"
+            style="padding: 14px; position: relative;" 
+            *ngFor="let item of dataService.activeSiteMaterials()"
+          >
+            <!-- Low Stock Indicator Dot/Badge -->
+            <div style="position: absolute; top: 12px; right: 12px;">
+              <ion-badge color="danger" style="font-size: 8px; padding: 2px 5px;" *ngIf="isLowStock(item)">
+                {{ langService.t('low_stock') }}
+              </ion-badge>
+              <ion-badge color="success" style="font-size: 8px; padding: 2px 5px;" *ngIf="!isLowStock(item)">
+                {{ langService.t('in_stock') }}
+              </ion-badge>
+            </div>
+
+            <div style="margin-bottom: 8px; background: rgba(255,255,255,0.03); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <ion-icon name="cube" color="primary" style="font-size: 20px;"></ion-icon>
+            </div>
+
+            <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px;">
+              {{ item.name }}
+            </span>
+            <h2 style="margin: 4px 0 2px 0; font-size: 24px; font-weight: 800; color: var(--app-text-color);">
+              {{ item.stock }}
+              <span style="font-size: 13px; font-weight: 500; color: var(--ion-color-medium);">{{ item.unit }}</span>
+            </h2>
+            <p style="margin: 0; font-size: 10px; color: var(--ion-color-medium);">
+              Min Alert: {{ item.lowStockThreshold }} {{ item.unit }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supplier Deliveries Ledger Section -->
+      <div>
+        <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 4px;">{{ langService.t('supplier_receipts') }}</h3>
+        
+        <div *ngIf="dataService.activeSiteDeliveries().length === 0" style="text-align: center; padding: 32px; color: var(--ion-color-medium);">
+          <ion-icon name="alert-circle" style="font-size: 32px; color: var(--ion-color-medium); margin-bottom: 8px;"></ion-icon>
+          <p style="margin: 0; font-size: 13px;">{{ langService.t('no_deliveries') }}</p>
+        </div>
+
+        <ion-list lines="none" style="background: transparent; padding: 0;">
+          <div class="glass-item hover-scale" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" *ngFor="let del of dataService.activeSiteDeliveries()">
+            <div style="display: flex; align-items: center;">
+              <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,159,10,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                <ion-icon name="cart" color="primary" style="font-size: 20px;"></ion-icon>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--app-text-color);">{{ del.materialName }}</h4>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+                  Qty: {{ del.quantity }} {{ del.unit }} • {{ del.supplierName }}
+                </p>
+                <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">
+                  {{ del.date | date:'dd MMM yyyy' }}
+                </p>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--app-text-color); font-family: monospace; display: block;">
+                {{ formatCurrency(del.totalAmount) }}
+              </span>
+              <span style="font-size: 10px; color: var(--ion-color-medium); display: block; margin-top: 2px;">
+                ₹{{ del.ratePerUnit }}/{{ del.unit.slice(0,-1) }}
+              </span>
+              <ion-badge [color]="del.status === 'Delivered' ? 'success' : 'warning'" style="font-size: 9px; padding: 2px 5px; margin-top: 4px; display: inline-block;">
+                {{ del.status === 'Delivered' ? langService.t('delivered') : langService.t('pending') }}
+              </ion-badge>
+            </div>
+          </div>
+        </ion-list>
+      </div>
+    </div>
+
+    <!-- ==================== 2. RENTAL EQUIPMENT VIEW ==================== -->
+    <div *ngIf="activeMaterialsSegment() === 'rentals'">
+      <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 4px;">{{ langService.t('active_rentals') }}</h3>
+      
+      <div *ngIf="dataService.activeSiteRentals().length === 0" style="text-align: center; padding: 32px; color: var(--ion-color-medium);">
+        <ion-icon name="alert-circle" style="font-size: 32px; color: var(--ion-color-medium); margin-bottom: 8px;"></ion-icon>
+        <p style="margin: 0; font-size: 13px;">{{ langService.t('no_rentals_tracked') || 'No rented materials on this site yet.' }}</p>
+      </div>
+
+      <ion-list lines="none" style="background: transparent; padding: 0;">
+        <div class="glass-item hover-scale" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" *ngFor="let item of dataService.activeSiteRentals()">
+          <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(100,210,255,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+              <ion-icon name="cube" color="tertiary" style="font-size: 20px;"></ion-icon>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--app-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ item.name }}
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+                Qty: {{ item.quantity }} • {{ langService.t('size') }}: {{ item.size }}
+              </p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">
+                {{ item.supplierName }} • Start: {{ item.startDate | date:'dd MMM yyyy' }}
+              </p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);" *ngIf="item.endDate">
+                End: {{ item.endDate | date:'dd MMM yyyy' }} ({{ dataService.getRentalDays(item.startDate, item.endDate) }} days)
+              </p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-success); font-weight: 600;" *ngIf="!item.endDate">
+                {{ langService.t('active') }} • {{ dataService.getRentalDays(item.startDate) }} days accrued
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; margin-left: 8px;">
+            <span style="font-size: 14px; font-weight: 700; color: var(--ion-color-tertiary); font-family: monospace; display: block;">
+              {{ formatCurrency(dataService.calculateRentalCost(item)) }}
+            </span>
+            <span style="font-size: 10px; color: var(--ion-color-medium); display: block; margin-top: 2px;">
+              ₹{{ item.ratePerDay }}/day
+            </span>
+            
+            <div style="display: flex; gap: 6px; margin-top: 8px;" class="no-print">
+              <ion-button *ngIf="!item.endDate" color="success" size="small" style="--padding-start: 6px; --padding-end: 6px; --border-radius: 6px; height: 24px; font-size: 9px; margin: 0; font-weight: bold;" (click)="returnRental(item.id)">
+                <ion-icon name="checkmark-done" style="margin-right: 2px;"></ion-icon>
+                {{ langService.t('action_return') }}
+              </ion-button>
+              <ion-button color="danger" fill="outline" size="small" style="--padding-start: 6px; --padding-end: 6px; --border-radius: 6px; height: 24px; font-size: 9px; margin: 0;" (click)="deleteRental(item.id)">
+                <ion-icon name="trash" style="font-size: 12px;"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </div>
+      </ion-list>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD MATERIAL LOG / RECEIPTS / RENTALS -->
+  <ion-modal [isOpen]="showAddModal()" (didDismiss)="closeAddModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('material_modal_title') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeAddModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--ion-color-medium);">
+            {{ langService.t('material_desc') }}
+          </p>
+
+          <!-- Purchase vs Rental Segment Toggle -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('material_flow_label') }}</label>
+            <ion-segment [value]="formFlowType" (ionChange)="formFlowType = $any($event.detail.value); showCustomNameInput = false; formMatName = (formFlowType === 'Purchase' ? 'Cement (UltraTech)' : 'Steel Plate')" style="--background: rgba(30, 33, 45, 0.4); border-radius: 10px; margin-top: 6px;">
+              <ion-segment-button value="Purchase">
+                <ion-label style="font-size: 11px; font-weight: 700;">{{ langService.t('purchase') }}</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="Rental">
+                <ion-label style="font-size: 11px; font-weight: 700;">{{ langService.t('rental') }}</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+          </div>
+
+          <!-- Material Name Selector/Custom input -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('material_name') }}</label>
+            
+            <div *ngIf="!showCustomNameInput">
+              <ion-select [(ngModel)]="formMatName" (ionChange)="showCustomNameInput = ($event.detail.value === 'CUSTOM')" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+                <ng-container *ngIf="formFlowType === 'Purchase'">
+                  <ion-select-option value="Cement (UltraTech)">Cement (UltraTech)</ion-select-option>
+                  <ion-select-option value="Cement (Ambuja)">Cement (Ambuja)</ion-select-option>
+                  <ion-select-option value="Steel (Jindal Panther)">Steel (Jindal Panther)</ion-select-option>
+                  <ion-select-option value="Steel (Tata Tiscon)">Steel (Tata Tiscon)</ion-select-option>
+                  <ion-select-option value="Sand (River Sand)">Sand (River Sand)</ion-select-option>
+                  <ion-select-option value="Sand (M-Sand)">Sand (M-Sand)</ion-select-option>
+                  <ion-select-option value="Bricks (Red Clay)">Bricks (Red Clay)</ion-select-option>
+                </ng-container>
+                <ng-container *ngIf="formFlowType === 'Rental'">
+                  <ion-select-option value="Steel Plate">Steel Plate</ion-select-option>
+                  <ion-select-option value="Scaffolding Pipes">Scaffolding Pipes</ion-select-option>
+                  <ion-select-option value="Wooden Plank">Wooden Plank</ion-select-option>
+                  <ion-select-option value="Metal Props">Metal Props</ion-select-option>
+                </ng-container>
+                <ion-select-option value="CUSTOM" style="font-weight: bold; color: var(--ion-color-primary);">-- {{ langService.t('custom_material') }} --</ion-select-option>
+              </ion-select>
+            </div>
+            
+            <div *ngIf="showCustomNameInput" style="position: relative; margin-top: 6px;">
+              <ion-input [(ngModel)]="formMatName" placeholder="e.g. Scaffolding Clamps" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+              <span (click)="showCustomNameInput = false; formMatName = (formFlowType === 'Purchase' ? 'Cement (UltraTech)' : 'Steel Plate')" style="font-size: 11px; color: var(--ion-color-primary); font-weight: 700; text-decoration: underline; cursor: pointer; display: block; margin-top: 4px; text-align: right;">
+                {{ langService.t('common_materials') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Supplier / Rental Vendor Name -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('supplier_name') }}</label>
+            <ion-input [(ngModel)]="formSupplierName" placeholder="e.g. Balaji Building Materials" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Quantity -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('qty') }}</label>
+            <ion-input type="number" [(ngModel)]="formQty" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Purchase Specific Fields -->
+          <div *ngIf="formFlowType === 'Purchase'" style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('unit') }}</label>
+            <ion-select [(ngModel)]="formUnit" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option value="Bags">Bags</ion-select-option>
+              <ion-select-option value="Tons">Tons</ion-select-option>
+              <ion-select-option value="Brass">Brass</ion-select-option>
+              <ion-select-option value="Pcs">Pcs</ion-select-option>
+            </ion-select>
+          </div>
+
+          <div *ngIf="formFlowType === 'Purchase'" style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('rate_per_unit') }} (₹)</label>
+            <ion-input type="number" [(ngModel)]="formRate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Rental Specific Fields -->
+          <div *ngIf="formFlowType === 'Rental'" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('size') }}</label>
+              <ion-input [(ngModel)]="formSize" placeholder="e.g. 3*3" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            </div>
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('start_date') }}</label>
+              <ion-input type="date" [(ngModel)]="formStartDate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            </div>
+          </div>
+
+          <div *ngIf="formFlowType === 'Rental'" style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('rent_per_day') }} (₹)</label>
+            <ion-input type="number" [(ngModel)]="formRatePerDay" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Form Submit Action Buttons -->
+          <div style="display: flex; gap: 12px; margin-top: 10px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="closeAddModal()">
+              {{ langService.t('cancel') }}
+            </ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitDelivery()">
+              {{ formFlowType === 'Purchase' ? langService.t('save_receipt') : langService.t('log_rental') }}
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: SETTINGS & LANGUAGE SELECTOR -->
+  <ion-modal [isOpen]="showSettingsModal()" (didDismiss)="showSettingsModal.set(false)">
+    <ng-template>
+      <app-settings-modal (dismiss)="showSettingsModal.set(false)"></app-settings-modal>
+    </ng-template>
+  </ion-modal>
+</ion-content>

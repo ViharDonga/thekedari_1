@@ -1,0 +1,221 @@
+import { Injectable, signal } from '@angular/core';
+
+export type SupportedLanguage = 'en' | 'hi' | 'gu';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class LanguageService {
+  // Current Language Signal (Default to English)
+  public currentLanguage = signal<SupportedLanguage>('en');
+
+  // Current Theme Signal (Default to Dark)
+  public currentTheme = signal<'dark' | 'light'>('dark');
+
+  // Set Theme Method
+  public setTheme(theme: 'dark' | 'light') {
+    this.currentTheme.set(theme);
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+  }
+
+  // Translation Dictionary
+  private translations: Record<string, Record<SupportedLanguage, string>> = {
+    // App Header & Tabs
+    'app_title': { en: 'Thekedari', hi: 'ठेकेदारी', gu: 'ઠેકેદારી' },
+    'sub_title': { en: 'Smart Contractor Hub', hi: 'स्मार्ट ठेकेदार हब', gu: 'સ્માર્ટ કોન્ટ્રાક્ટર હબ' },
+    'tab_dashboard': { en: 'Dashboard', hi: 'डैशबोर्ड', gu: 'ડેશબોર્ડ' },
+    'tab_labour': { en: 'Labour & Attendance', hi: 'मजदूर और हाजिरी', gu: 'મજૂર અને હાજરી' },
+    'tab_materials': { en: 'Materials & Site', hi: 'सामग्री और साइट', gu: 'સામગ્રી અને સાઇટ' },
+    
+    // Settings Modal
+    'settings_title': { en: 'App Settings', hi: 'ऐप सेटिंग्स', gu: 'એપ સેટિંગ્સ' },
+    'select_language': { en: 'Select App Language', hi: 'ऐप की भाषा चुनें', gu: 'એપની ભાષા પસંદ કરો' },
+    'theme_section': { en: 'Theme Mode', hi: 'थीम मोड', gu: 'થીમ મોડ' },
+    'light_theme': { en: 'Light Theme', hi: 'लाइट थीम', gu: 'લાઇટ થીમ' },
+    'dark_theme': { en: 'Dark Theme', hi: 'डार्क थीम', gu: 'ડાર્ક થીમ' },
+    'english': { en: 'English', hi: 'अंग्रेजी (English)', gu: 'અંગ્રેજી (English)' },
+    'hindi': { en: 'Hindi (हिंदी)', hi: 'हिंदी (हिंदी)', gu: 'હિન્દી (हिंदी)' },
+    'gujarati': { en: 'Gujarati (ગુજરાતી)', hi: 'गुजराती (ગુજરાતી)', gu: 'ગુજરાતી (ગુજરાતી)' },
+    'profile_section': { en: 'Business Profile', hi: 'व्यवसाय प्रोफ़ाइल', gu: 'બિઝનેસ પ્રોફાઇલ' },
+    'biz_name': { en: 'Business Name', hi: 'व्यवसाय का नाम', gu: 'વેપારનું નામ' },
+    'contractor_license': { en: 'Contractor License', hi: 'ठेकेदारी लाइसेंस', gu: 'કોન્ટ્રાક્ટર લાયસન્સ' },
+    'verified': { en: 'Verified', hi: 'सत्यापित', gu: 'વેરીફાઈડ' },
+    'backup_sync': { en: 'Auto Cloud Sync', hi: 'ऑटो क्लाउड सिंक', gu: 'ઓટો ક્લાઉડ સિંક' },
+    'app_version': { en: 'App Version', hi: 'ऐप का संस्करण', gu: 'એપ સંસ્કરણ' },
+    'done': { en: 'Done', hi: 'सहेजें', gu: 'થઈ ગયું' },
+
+    // Dashboard Tab 1 Labels
+    'active_site': { en: 'Active Site', hi: 'सक्रिय साइट', gu: 'સક્રિય સાઇટ' },
+    'budget_utilization': { en: 'Budget Utilization', hi: 'बजट उपयोग', gu: 'બજેટ ઉપયોગ' },
+    'consumed': { en: 'Consumed', hi: 'उपयोग किया गया', gu: 'વપરાયેલ' },
+    'supervisor': { en: 'Supervisor', hi: 'सुपरवाइजर', gu: 'સુપરવાઇઝર' },
+    'quick_actions': { en: 'Quick Actions', hi: 'त्वरित कार्य', gu: 'ઝડપી કાર્યો' },
+    'material_delivery': { en: 'Material Delivery', hi: 'सामग्री प्राप्ति', gu: 'સામગ્રી વિતરણ' },
+    'record_materials': { en: 'Record materials received', hi: 'प्राप्त सामग्री दर्ज करें', gu: 'પ્રાપ્ત સામગ્રીની નોંધ કરો' },
+    'wage_payment': { en: 'Wage Payment', hi: 'मजदूरी भुगतान', gu: 'મજૂરી ચૂકવણી' },
+    'log_payments': { en: 'Log payments/advances', hi: 'भुगतान/अग्रिम दर्ज करें', gu: 'ચુકવણી/એડવાન્સ નોંધી લો' },
+    'live_site_stats': { en: 'Live Site Stats', hi: 'साइट के लाइव आंकड़े', gu: 'સાઇટના લાઇવ આંકડા' },
+    'workers_on_duty': { en: 'Workers On Duty', hi: 'काम पर मौजूद मजदूर', gu: 'કામ પર હાજર મજૂર' },
+    'today_accrued_wages': { en: 'Today\'s Accrued Wages', hi: 'आज की कुल मजदूरी', gu: 'આજની કુલ મજૂરી' },
+    'based_on_roll': { en: 'Based on active roll', hi: 'हाजिरी के आधार पर', gu: 'હાજરીના આધારે' },
+    'expense_allocation': { en: 'Expense Allocation Summary', hi: 'खर्च का सारांश', gu: 'ખર્ચની વિગતવાર વિગત' },
+    'labour_wages': { en: 'Labour Wages', hi: 'मजदूरों की मजदूरी', gu: 'મજૂરની મજૂરી' },
+    'materials_inventory': { en: 'Materials Inventory', hi: 'सामग्री स्टॉक', gu: 'સામગ્રી સ્ટોક' },
+    'machinery_misc': { en: 'Machinery & Miscellaneous', hi: 'मशीनरी और अन्य', gu: 'મશીનરી અને અન્ય' },
+    'recent_ledger': { en: 'Recent Site Ledger', hi: 'हालिया बहीखाता', gu: 'તાજેતરની ખાતાવહી' },
+    'today': { en: 'Today', hi: 'आज', gu: 'આજે' },
+
+    // Labour Tab 2 Labels
+    'roster_attendance': { en: 'Roster & Attendance', hi: 'मजदूर सूची और हाजिरी', gu: 'મજૂર યાદી અને હાજરી' },
+    'roll_call_ledger': { en: 'Daily Roll Call Ledger', hi: 'दैनिक हाजिरी रजिस्टर', gu: 'દૈનિક હાજરી રજીસ્ટર' },
+    'search_placeholder': { en: 'Search worker name or trade...', hi: 'मजदूर का नाम या काम खोजें...', gu: 'મજૂરનું નામ અથવા કામ શોધો...' },
+    'filter_site': { en: 'Filter Site', hi: 'साइट चुनें', gu: 'સાઇટ પસંદ કરો' },
+    'filter_trade': { en: 'Filter Trade', hi: 'श्रेणी चुनें', gu: 'શ્રેણી પસંદ કરો' },
+    'all_sites': { en: 'All Sites', hi: 'सभी साइटें', gu: 'બધી સાઇટો' },
+    'all_trades': { en: 'All Trades', hi: 'सभी श्रेणियां', gu: 'બધી શ્રેણીઓ' },
+    'total': { en: 'Total', hi: 'कुल', gu: 'કુલ' },
+    'workers': { en: 'Workers', hi: 'मजदूर', gu: 'મજૂરો' },
+    'present': { en: 'Present', hi: 'उपस्थित', gu: 'હાજર' },
+    'absent': { en: 'Absent', hi: 'अनुपस्थित', gu: 'ગેરહાજર' },
+    'due_wages': { en: 'Due Wages', hi: 'बकाया मजदूरी', gu: 'બાકી મજૂરી' },
+    'adv': { en: 'Adv', hi: 'अग्रिम', gu: 'એડવાન્સ' },
+    'today_mark': { en: 'Today\'s Mark', hi: 'आज की हाजिरी', gu: 'આજની હાજરી' },
+    'attendance_date': { en: 'Attendance Date', hi: 'हाजिरी की तारीख', gu: 'હાજરી તારીખ' },
+
+    // Labour Details Ledger Modal
+    'labour_ledger': { en: 'Labour Ledger', hi: 'मजदूर बहीखाता', gu: 'મજૂર ખાતાવહી' },
+    'wages_outstanding': { en: 'Wages Outstanding', hi: 'कुल बकाया मजदूरी', gu: 'કુલ બાકી મજૂરી' },
+    'advance_paid': { en: 'Advance Cash Paid', hi: 'दिया गया अग्रिम', gu: 'ચૂકવેલ એડવાન્સ' },
+    'record_payout': { en: 'Record Worker Payout', hi: 'भुगतान दर्ज करें', gu: 'ચુકવણીની રકમ નોંધો' },
+    'clear_wages': { en: 'Clear Outstanding Wages', hi: 'बकाया मजदूरी चुकाएं', gu: 'બાકી મજૂરી ચૂકવો' },
+    'ledger_history': { en: 'Ledger History', hi: 'बहीखाता इतिहास', gu: 'ખાતાવહીનો ઇતિહાસ' },
+    'no_past_tx': { en: 'No past transactions recorded for this worker.', hi: 'इस मजदूर के लिए कोई पुराना लेनदेन दर्ज नहीं है।', gu: 'આ મજૂર માટે કોઈ જૂના વ્યવહારો નોંધાયેલા નથી.' },
+
+    // Materials Tab 3 Labels
+    'materials_stock': { en: 'Materials & Inventory', hi: 'सामग्री और स्टॉक', gu: 'સામગ્રી અને સ્ટોક' },
+    'supply_tracker': { en: 'Site Supply Tracker', hi: 'साइट आपूर्ति ट्रैकर', gu: 'સાઇટ સપ્લાય ટ્રેકર' },
+    'current_site': { en: 'Current Site', hi: 'वर्तमान साइट', gu: 'વર્તમાન સાઇટ' },
+    'log_delivery': { en: 'Log Delivery', hi: 'डिलीवरी दर्ज करें', gu: 'ડિલિવરી નોંધો' },
+    'stock_levels': { en: 'Current Stock Levels', hi: 'वर्तमान स्टॉक स्तर', gu: 'વર્તમાન સ્ટોક સ્તર' },
+    'supplier_receipts': { en: 'Recent Supplier Receipts', hi: 'हालिया सप्लायर रसीदें', gu: 'તાજેતરની સપ્લાયર રસીદો' },
+    'no_deliveries': { en: 'No materials delivered to this site yet.', hi: 'इस साइट पर अभी तक कोई सामग्री वितरित नहीं हुई है।', gu: 'આ સાઇટ પર હજુ સુધી કોઈ સામગ્રી પહોંચાડવામાં આવી નથી.' },
+
+    // Common Modal Inputs
+    'material_modal_title': { en: 'Record Material Delivery', hi: 'सामग्री प्राप्ति दर्ज करें', gu: 'સામગ્રી ડિલિવરી નોંધો' },
+    'material_desc': { en: 'Log cement, steel, sand, aggregate, or bricks arriving at the construction site. This updates current site inventory levels and matches accounting.', hi: 'साइट पर आने वाले सीमेंट, स्टील, रेत या ईंटों की जानकारी दर्ज करें। यह साइट के स्टॉक और खातों को अपडेट करता है।', gu: 'સાઇટ પર આવતા સિમેન્ટ, સ્ટીલ, રેતી અથવા ઇંટોની માહિતી દાખલ કરો. આ સાઇટના સ્ટોક અને ખાતાઓને અપડેટ કરે છે.' },
+    'material_name': { en: 'Material Name / Type', hi: 'सामग्री का नाम / प्रकार', gu: 'સામગ્રીનું નામ / પ્રકાર' },
+    'supplier_name': { en: 'Supplier Name', hi: 'सप्लायर का नाम', gu: 'સપ્લાયરનું નામ' },
+    'qty': { en: 'Quantity', hi: 'मात्रा', gu: 'જથ્થો' },
+    'unit': { en: 'Unit', hi: 'इकाई', gu: 'એકમ' },
+    'rate_per_unit': { en: 'Rate Per Unit (₹)', hi: 'दर प्रति इकाई (₹)', gu: 'એકમ દીઠ દર (₹)' },
+    'cancel': { en: 'Cancel', hi: 'रद्द करें', gu: 'રદ કરો' },
+    'receive_material': { en: 'Receive Material', hi: 'सामग्री प्राप्त करें', gu: 'સામગ્રી મેળવો' },
+    'save_receipt': { en: 'Save Receipt', hi: 'रसीद सहेजें', gu: 'રસીદ સાચવો' },
+
+    'payment_modal_title': { en: 'Record Wage Payment', hi: 'मजदूरी भुगतान दर्ज करें', gu: 'મજૂરી ચૂકવણી નોંધો' },
+    'payment_desc': { en: 'Record a daily payment or cash advance paid out to active workers. This decrements their pending balance due.', hi: 'मजदूरों को किए गए दैनिक भुगतान या अग्रिम राशि दर्ज करें। इससे उनका बकाया बैलेंस कम हो जाता है।', gu: 'મજૂરોને ચૂકવેલ દૈનિક રકમ અથવા એડવાન્સની નોંધ કરો. આનાથી તેમની બાકી રકમ ઓછી થશે.' },
+    'select_worker': { en: 'Select Worker', hi: 'मजदूर चुनें', gu: 'મજૂર પસંદ કરો' },
+    'payment_amt': { en: 'Payment Amount (₹)', hi: 'भुगतान राशि (₹)', gu: 'ચુકવણીની રકમ (₹)' },
+    'payment_mode': { en: 'Payment Mode', hi: 'भुगतान का प्रकार', gu: 'ચુકવણીનો પ્રકાર' },
+    'record_payment': { en: 'Record Payment', hi: 'भुगतान सहेजें', gu: 'ચુકવણી સાચવો' },
+
+    'ot_title': { en: 'Specify Overtime Hours', hi: 'ओवरटाइम के घंटे दर्ज करें', gu: 'ઓવરટાઇમના કલાકો લખો' },
+    'ot_desc': { en: 'Daily rate based overtime calculations.', hi: 'दैनिक दर के आधार पर ओवरटाइम की गणना।', gu: 'દૈનિક દરના આધારે ઓવરટાઇમની ગણતરી.' },
+    'ot_hours': { en: 'Overtime Hours', hi: 'ओवरटाइम के घंटे', gu: 'ઓવરટાઇમના કલાકો' },
+    'save_ot': { en: 'Save Overtime', hi: 'ओवरटाइम सहेजें', gu: 'ઓવરટાઇમ સાચવો' },
+    
+    // Status Badges
+    'low_stock': { en: 'Low Stock', hi: 'कम स्टॉक', gu: 'ઓછો સ્ટોક' },
+    'in_stock': { en: 'In Stock', hi: 'स्टॉक में', gu: 'સ્ટોકમાં' },
+    'active': { en: 'Active', hi: 'सक्रिय', gu: 'સક્રિય' },
+    'delivered': { en: 'Delivered', hi: 'वितरित', gu: 'ડિલિવર થયેલ' },
+    'pending': { en: 'Pending', hi: 'लंबित', gu: 'બાકી' },
+    
+    // Reports and rentals
+    'tab_reports': { en: 'Reports', hi: 'रिपोर्ट्स', gu: 'રિપોર્ટસ' },
+    'labour_report': { en: 'Labour Report', hi: 'मजदूर रिपोर्ट', gu: 'મજૂર રિપોર્ટ' },
+    'rental_materials': { en: 'Rented Materials', hi: 'किराए की सामग्री', gu: 'ભાડાની સામગ્રી' },
+    'rent_rate': { en: 'Rent Rate', hi: 'किराया दर', gu: 'ભાડાનો દર' },
+    'rent_per_day': { en: 'Rent / Day', hi: 'किराया / दिन', gu: 'ભાડું / દિવસ' },
+    'rent_cost': { en: 'Accrued Rent', hi: 'कुल किराया', gu: 'કુલ ભાડું' },
+    'active_rentals': { en: 'Active Rentals', hi: 'सक्रिय किराए की सामग्री', gu: 'સક્રિય ભાડાની સામગ્રી' },
+    'returned_rentals': { en: 'Returned Rentals', hi: 'लौटाई गई सामग्री', gu: 'પરત કરેલ સામગ્રી' },
+    'log_rental': { en: 'Log Rental', hi: 'किराया दर्ज करें', gu: 'ભાડું નોંધો' },
+    'return_date': { en: 'Return Date', hi: 'वापसी की तारीख', gu: 'પરત તારીખ' },
+    'start_date': { en: 'Start Date', hi: 'शुरू होने की तारीख', gu: 'શરૂઆતની તારીખ' },
+    'material_flow_type': { en: 'Material Transaction Type', hi: 'सामग्री लेनदेन प्रकार', gu: 'સામગ્રી વ્યવહાર પ્રકાર' },
+    'purchase': { en: 'One-time Purchase', hi: 'एक-बारगी खरीद (Purchase)', gu: 'એકવારની ખરીદી (Purchase)' },
+    'rental': { en: 'Rental Equipment', hi: 'किराए पर सामान (Rental)', gu: 'ભાડા પર સામાન (Rental)' },
+    'size': { en: 'Size / Dimension', hi: 'आकार / माप', gu: 'કદ / માપ' },
+    'total_spent_report': { en: 'All Sites Spent Report', hi: 'सभी साइटों का खर्च रिपोर्ट', gu: 'બધી સાઇટોનો ખર્ચ અહેવાલ' },
+    'individual_spent_report': { en: 'Individual Site Report', hi: 'एकल साइट रिपोर्ट', gu: 'એકલ સાઇટ અહેવાલ' },
+    'spent_wages': { en: 'Wages Paid', hi: 'मजदूरी भुगतान', gu: 'ચૂકવેલ મજૂરી' },
+    'spent_materials': { en: 'Material Costs', hi: 'सामग्री खर्च', gu: 'સામગ્રી ખર્ચ' },
+    'spent_rentals': { en: 'Rental Costs', hi: 'किराया खर्च', gu: 'ભાડાનો ખર્ચ' },
+    'other_expenses': { en: 'Other Expenses', hi: 'अन्य खर्च', gu: 'અન્ય ખર્ચ' },
+    'total_spent': { en: 'Total Spent', hi: 'कुल खर्च', gu: 'કુલ ખર્ચ' },
+    'budget': { en: 'Budget', hi: 'बजट', gu: 'બજેટ' },
+    'remaining': { en: 'Remaining', hi: 'शेष', gu: 'બાકી' },
+    'cost_breakdown': { en: 'Cost Breakdown', hi: 'लागत का विवरण', gu: 'ખર્ચનું વિવરણ' },
+    'site_name': { en: 'Site Name', hi: 'साइट का नाम', gu: 'સાઇટનું નામ' },
+    'action_return': { en: 'Return Material', hi: 'सामग्री लौटाएं', gu: 'સામાન પરત કરો' },
+    'print_report': { en: 'Create PDF / Print', hi: 'पीडीएफ बनाएं / प्रिंट', gu: 'પીડીએફ બનાવો / પ્રિન્ટ' },
+    'all_sites_summary': { en: 'All Sites Summary', hi: 'सभी साइटों का सारांश', gu: 'બધી સાઇટોનો સારાંશ' },
+    'site_detail_report': { en: 'Site Detail Report', hi: 'साइट विवरण रिपोर्ट', gu: 'સાઇટ વિગતવાર રિપોર્ટ' },
+    'select_site_report': { en: 'Select Site to View Report', hi: 'रिपोर्ट देखने के लिए साइट चुनें', gu: 'રિપોર્ટ જોવા માટે સાઇટ પસંદ કરો' },
+    'equipment_rented': { en: 'Equipment on Rent', hi: 'किराए पर दिया गया सामान', gu: 'ભાડે આપેલ સાધનો' },
+    'days_on_rent': { en: 'Days on Rent', hi: 'किराए के दिन', gu: 'ભાડાના દિવસો' },
+    'custom_material': { en: 'Custom Material', hi: 'कस्टम सामग्री', gu: 'કસ્ટમ સામગ્રી' },
+    'common_materials': { en: 'Common Materials', hi: 'सामान्य सामग्री', gu: 'સામાન્ય સામગ્રી' },
+    'common_rentals': { en: 'Common Rental Items', hi: 'सामान्य किराए की सामग्री', gu: 'સામાન્ય ભાડાની સામગ્રી' },
+    'material_flow_label': { en: 'Transaction Type', hi: 'लेनदेन का प्रकार', gu: 'વ્યવહાર પ્રકાર' },
+    
+    // Monthly Attendance & Advance Booking / Day book keys
+    'monthly_attendance_grid': { en: 'Monthly Attendance - June 2026', hi: 'मासिक हाजिरी - जून 2026', gu: 'માસિક હાજરી - જૂન 2026' },
+    'sub_tab_roster': { en: 'Roster & Roll Call', hi: 'हाजिरी रजिस्टर', gu: 'હાજરી રજીસ્ટર' },
+    'sub_tab_bookings': { en: 'Advance Bookings', hi: 'अग्रिम बुकिंग', gu: 'એડવાન્સ બુકિંગ' },
+    'sub_tab_daybook': { en: 'Advance Day Book', hi: 'अग्रिम रोकड़ बही', gu: 'એડવાન્સ રોકડ મેળ' },
+    'book_labour_btn': { en: 'Book Labour', hi: 'मजदूर बुक करें', gu: 'મજૂર બુક કરો' },
+    'booking_date': { en: 'Booking Date', hi: 'बुकिंग की तारीख', gu: 'બુકિંગ તારીખ' },
+    'remarks': { en: 'Remarks / Work Description', hi: 'टिप्पणी / कार्य विवरण', gu: 'નોંધ / કામની વિગત' },
+    'no_bookings_tracked': { en: 'No future bookings logged.', hi: 'कोई अग्रिम बुकिंग दर्ज नहीं है।', gu: 'કોઈ એડવાન્સ બુકિંગ નોંધાયેલ નથી.' },
+    'no_adv_payments': { en: 'No advance payments recorded today.', hi: 'आज कोई अग्रिम भुगतान दर्ज नहीं है।', gu: 'આજે કોઈ એડવાન્સ ચુકવણી નોંધાયેલ નથી.' },
+    'cancel_booking': { en: 'Cancel Booking', hi: 'बुकिंग रद्द करें', gu: 'બુકિંગ રદ કરો' },
+    'worker_bookings_title': { en: 'Labour Advance Bookings', hi: 'लेबर एडवांस बुकिंग रजिस्टर', gu: 'લેબર એડવાન્સ બુકિંગ રજીસ્ટર' },
+    'advance_cash_daybook': { en: 'Advance Payments Day Book', hi: 'अग्रिम भुगतान बहीखाता', gu: 'એડવાન્સ ચુકવણી ખાતાવહી' },
+    'booking_modal_title': { en: 'Create Advance Booking', hi: 'अग्रिम बुकिंग बनाएं', gu: 'એડવાન્સ બુકિંગ બનાવો' },
+    'add_labour': { en: 'Add Labour', hi: 'नया मजदूर जोड़ें', gu: 'નવો મજૂર ઉમેરો' },
+    'employment_type': { en: 'Employment Type', hi: 'रोजगार का प्रकार', gu: 'રોજગારનો પ્રકાર' },
+    'permanent': { en: 'Permanent', hi: 'स्थायी', gu: 'કાયમી' },
+    'casual': { en: 'Casual (On-Call)', hi: 'अस्थायी (कॉल पर)', gu: 'કામચલાઉ (કોલ પર)' },
+    'call_to_work': { en: 'Call to Work', hi: 'काम पर बुलाएं', gu: 'કામ પર બોલાવો' },
+    'release_btn': { en: 'Cancel Call', hi: 'बुलावा रद्द करें', gu: 'બોલાવવાનું રદ કરો' },
+    'worker_added_success': { en: 'Worker added successfully.', hi: 'मजदूर सफलतापूर्वक जोड़ दिया गया है।', gu: 'મજૂર સફળતાપૂર્વક ઉમેરવામાં આવ્યો છે.' },
+    'enter_worker_details': { en: 'Enter Worker Details', hi: 'मजदूर का विवरण भरें', gu: 'મજૂરની વિગતો ભરો' },
+    'worker_name': { en: 'Worker Name', hi: 'मजदूर का नाम', gu: 'મજૂરનું નામ' },
+    'daily_wage_rate': { en: 'Daily Rate (₹)', hi: 'दैनिक दर (₹)', gu: 'દૈનિક દર (₹)' },
+    'phone_number': { en: 'Phone Number', hi: 'फ़ोन नंबर', gu: 'ફોન નંબર' },
+    'select_role': { en: 'Select Role / Trade', hi: 'श्रेणी / काम चुनें', gu: 'શ્રેણી / કામ પસંદ કરો' },
+    'download_app_banner_title': { en: 'Get the Android App!', hi: 'एंड्रॉइड ऐप डाउनलोड करें!', gu: 'એન્ડ્રોઇડ એપ ડાઉનલોડ કરો!' },
+    'download_app_banner_desc': { en: 'Download our official mobile app for a faster and smoother experience on-site.', hi: 'साइट पर तेज़ और आसान अनुभव के लिए हमारा आधिकारिक मोबाइल ऐप डाउनलोड करें।', gu: 'સાઇટ પર વધુ ઝડપી और आसान अनुभव के लिए हमारी सहेजें ऐप डाउनलोड करें।' },
+    'download_now': { en: 'Download Now', hi: 'अभी डाउनलोड करें', gu: 'હમણાં ડાઉનલોડ કરો' }
+  };
+
+  // Translation Function
+  public t(key: string): string {
+    const translationSet = this.translations[key];
+    if (!translationSet) {
+      return key;
+    }
+    return translationSet[this.currentLanguage()] || translationSet['en'];
+  }
+
+  // Set Language
+  public setLanguage(lang: SupportedLanguage) {
+    this.currentLanguage.set(lang);
+  }
+}

@@ -1,0 +1,464 @@
+<ion-header [translucent]="true">
+  <ion-toolbar class="glass-panel">
+    <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 16px;">
+      <div class="app-logo-area">
+        <h1 style="margin: 0; font-size: 22px; font-weight: 800; display: flex; align-items: center;">
+          <ion-icon name="business" color="primary" style="margin-right: 8px; font-size: 24px;"></ion-icon>
+          <span class="text-gradient">{{ langService.t('app_title') }}</span>
+        </h1>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium); font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{{ langService.t('sub_title') }}</p>
+      </div>
+      
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="site-selector-wrapper">
+          <ion-select 
+            [value]="dataService.activeSiteId()" 
+            interface="popover" 
+            (ionChange)="onSiteChange($event)"
+            toggleIcon="chevron-down"
+            style="min-width: 140px; font-size: 13px;"
+          >
+            <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
+              {{ s.name }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+
+        <ion-button (click)="showSettingsModal.set(true)" fill="clear" color="primary" style="--padding-start: 4px; --padding-end: 4px; margin: 0;">
+          <ion-icon name="settings-outline" style="font-size: 22px;"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Decorative Background Glow -->
+  <div style="position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,159,10,0.06) 0%, rgba(0,0,0,0) 70%); top: -100px; left: -100px; pointer-events: none; z-index: -1;"></div>
+  <div style="position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(48,209,88,0.04) 0%, rgba(0,0,0,0) 70%); bottom: 100px; right: -200px; pointer-events: none; z-index: -1;"></div>
+
+  <!-- Android APK Download Promo Banner -->
+  <div *ngIf="showAndroidDownloadBanner()" class="glass-panel bg-gradient-orange" style="padding: 16px; margin: 12px 16px 4px 16px; position: relative; border-left: 4px solid var(--ion-color-primary) !important; border-radius: 14px;">
+    <button (click)="dismissAndroidBanner()" style="position: absolute; top: 12px; right: 12px; background: transparent; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
+      <ion-icon name="close" style="font-size: 18px; color: var(--ion-color-medium);"></ion-icon>
+    </button>
+    
+    <div style="display: flex; align-items: flex-start; gap: 12px; padding-right: 18px;">
+      <div style="background: rgba(255, 159, 10, 0.15); padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+        <ion-icon name="logo-android" style="font-size: 26px; color: var(--ion-color-primary);"></ion-icon>
+      </div>
+      <div style="flex: 1;">
+        <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--app-text-color); line-height: 1.2;">
+          {{ langService.t('download_app_banner_title') }}
+        </h3>
+        <p style="margin: 4px 0 10px 0; font-size: 12px; color: var(--ion-color-medium); line-height: 1.4;">
+          {{ langService.t('download_app_banner_desc') }}
+        </p>
+        <ion-button href="/assets/thekedari.apk" download="thekedari.apk" size="small" color="primary" style="font-weight: 700; margin: 0; --border-radius: 8px; --box-shadow: 0 4px 10px rgba(255,159,10,0.3);">
+          <ion-icon name="download-outline" slot="start" style="font-size: 16px;"></ion-icon>
+          {{ langService.t('download_now') }}
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ion-padding" style="padding-top: 8px;">
+    <!-- Active Site Info Header -->
+    <div class="site-header-card glass-panel" style="padding: 16px; margin-bottom: 16px; margin-top: 4px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <span style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary); letter-spacing: 0.5px;">{{ langService.t('active_site') }}</span>
+          <h2 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 700; color: var(--app-text-color);">{{ dataService.activeSite().name }}</h2>
+          <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ion-color-medium); display: flex; align-items: center;">
+            <ion-icon name="location" style="margin-right: 4px; color: var(--ion-color-primary);"></ion-icon>
+            {{ dataService.activeSite().location }}
+          </p>
+        </div>
+        <ion-badge color="primary" style="font-size: 12px; padding: 6px 10px;">
+          {{ langService.t('active') }}
+        </ion-badge>
+      </div>
+      
+      <!-- Budget Utilization Meter -->
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px;">
+          <span style="color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('budget_utilization') }}</span>
+          <span style="font-weight: 700; color: var(--app-text-color);">
+            {{ formatCurrency(dataService.activeSite().totalExpenses) }} / 
+            <span style="color: var(--ion-color-medium); font-weight: 500;">{{ formatCurrency(dataService.activeSite().budget) }}</span>
+          </span>
+        </div>
+        <ion-progress-bar 
+          [value]="getBudgetUsagePercent(dataService.activeSite())" 
+          [color]="getBudgetUsagePercent(dataService.activeSite()) > 0.85 ? 'danger' : getBudgetUsagePercent(dataService.activeSite()) > 0.6 ? 'warning' : 'success'"
+          style="height: 10px; border-radius: 5px; --progress-background: rgba(255,255,255,0.1);"
+        ></ion-progress-bar>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px; color: var(--ion-color-medium);">
+          <span>{{ langService.t('consumed') }}: {{ getBudgetUsagePercent(dataService.activeSite()) | percent:'1.0-1' }}</span>
+          <span>{{ langService.t('supervisor') }}: {{ dataService.activeSite().supervisorName }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Action Hub -->
+    <div style="margin-bottom: 20px;">
+      <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 10px 4px;">{{ langService.t('quick_actions') }}</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="hover-scale active-scale glass-panel bg-gradient-orange" (click)="openMaterialModal()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; border: none; cursor: pointer; text-align: center;">
+          <ion-icon name="cart" style="font-size: 28px; color: var(--ion-color-primary); margin-bottom: 8px;"></ion-icon>
+          <span style="font-size: 14px; font-weight: 700; color: var(--app-text-color);">{{ langService.t('material_delivery') }}</span>
+          <span style="font-size: 11px; color: var(--ion-color-medium); margin-top: 2px;">{{ langService.t('record_materials') }}</span>
+        </button>
+
+        <button class="hover-scale active-scale glass-panel bg-gradient-green" (click)="openPaymentModal()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; border: none; cursor: pointer; text-align: center;">
+          <ion-icon name="cash" style="font-size: 28px; color: var(--ion-color-secondary); margin-bottom: 8px;"></ion-icon>
+          <span style="font-size: 14px; font-weight: 700; color: var(--app-text-color);">{{ langService.t('wage_payment') }}</span>
+          <span style="font-size: 11px; color: var(--ion-color-medium); margin-top: 2px;">{{ langService.t('log_payments') }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Site Statistics Grid -->
+    <div style="margin-bottom: 20px;">
+      <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 10px 4px;">{{ langService.t('live_site_stats') }}</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <!-- Card 1: Active Labour Today -->
+        <div class="glass-panel" style="padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div style="background: rgba(100, 210, 255, 0.1); padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <ion-icon name="people" color="tertiary" style="font-size: 22px;"></ion-icon>
+            </div>
+            <ion-badge color="tertiary" style="font-size: 10px;">{{ langService.t('today') }}</ion-badge>
+          </div>
+          <span style="font-size: 12px; color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('workers_on_duty') }}</span>
+          <h2 style="margin: 4px 0; font-size: 28px; font-weight: 800; color: var(--app-text-color);">
+            {{ dataService.todayActiveLabourCount() }}
+            <span style="font-size: 14px; font-weight: 500; color: var(--ion-color-medium);">/ {{ dataService.activeSiteWorkers().length }}</span>
+          </h2>
+          <p style="margin: 0; font-size: 11px; color: var(--ion-color-success); font-weight: 500;" *ngIf="dataService.todayActiveLabourCount() > 0">
+            {{ langService.t('active') }}
+          </p>
+          <p style="margin: 0; font-size: 11px; color: var(--ion-color-danger); font-weight: 500;" *ngIf="dataService.todayActiveLabourCount() === 0">
+            {{ langService.t('absent') }}
+          </p>
+        </div>
+
+        <!-- Card 2: Today's Estimated Wages -->
+        <div class="glass-panel" style="padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div style="background: rgba(48, 209, 88, 0.1); padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <ion-icon name="cash" color="secondary" style="font-size: 22px;"></ion-icon>
+            </div>
+            <ion-badge color="success" style="font-size: 10px;">{{ langService.t('today') }}</ion-badge>
+          </div>
+          <span style="font-size: 12px; color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('today_accrued_wages') }}</span>
+          <h2 style="margin: 4px 0; font-size: 28px; font-weight: 800; color: var(--app-text-color);" class="text-gradient-green">
+            {{ formatCurrency(dataService.todayWagesExpense()) }}
+          </h2>
+          <p style="margin: 0; font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">
+            {{ langService.t('based_on_roll') }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expense Breakdown Analysis -->
+    <div class="glass-panel" style="padding: 16px; margin-bottom: 20px;">
+      <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 16px 0; display: flex; align-items: center;">
+        <ion-icon name="stats-chart" color="primary" style="margin-right: 8px;"></ion-icon>
+        {{ langService.t('expense_allocation') }}
+      </h3>
+      
+      <!-- Visual representation of breakdown -->
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <!-- Wages -->
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 4px;">
+            <span style="display: flex; align-items: center; color: var(--app-text-color);">
+              <span style="width: 8px; height: 8px; background: var(--ion-color-secondary); border-radius: 50%; margin-right: 8px;"></span>
+              {{ langService.t('labour_wages') }}
+            </span>
+            <span style="color: var(--app-text-color); font-weight: 600;">
+              {{ formatCurrency(dataService.activeSite().spentWages) }}
+              <span style="color: var(--ion-color-medium); font-weight: 400; font-size: 11px;">({{ getWagesPercent(dataService.activeSite()) | percent:'1.0-0' }})</span>
+            </span>
+          </div>
+          <ion-progress-bar [value]="getWagesPercent(dataService.activeSite())" color="secondary" style="height: 6px; border-radius: 3px;"></ion-progress-bar>
+        </div>
+
+        <!-- Materials -->
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 4px;">
+            <span style="display: flex; align-items: center; color: var(--app-text-color);">
+              <span style="width: 8px; height: 8px; background: var(--ion-color-primary); border-radius: 50%; margin-right: 8px;"></span>
+              {{ langService.t('materials_inventory') }}
+            </span>
+            <span style="color: var(--app-text-color); font-weight: 600;">
+              {{ formatCurrency(dataService.activeSite().spentMaterials) }}
+              <span style="color: var(--ion-color-medium); font-weight: 400; font-size: 11px;">({{ getMaterialsPercent(dataService.activeSite()) | percent:'1.0-0' }})</span>
+            </span>
+          </div>
+          <ion-progress-bar [value]="getMaterialsPercent(dataService.activeSite())" color="primary" style="height: 6px; border-radius: 3px;"></ion-progress-bar>
+        </div>
+
+        <!-- Others -->
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 4px;">
+            <span style="display: flex; align-items: center; color: var(--app-text-color);">
+              <span style="width: 8px; height: 8px; background: var(--ion-color-tertiary); border-radius: 50%; margin-right: 8px;"></span>
+              {{ langService.t('machinery_misc') }}
+            </span>
+            <span style="color: var(--app-text-color); font-weight: 600;">
+              {{ formatCurrency(dataService.activeSite().otherExpenses) }}
+              <span style="color: var(--ion-color-medium); font-weight: 400; font-size: 11px;">({{ getOthersPercent(dataService.activeSite()) | percent:'1.0-0' }})</span>
+            </span>
+          </div>
+          <ion-progress-bar [value]="getOthersPercent(dataService.activeSite())" color="tertiary" style="height: 6px; border-radius: 3px;"></ion-progress-bar>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Site Ledger -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-left: 4px;">
+        <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0;">{{ langService.t('recent_ledger') }}</h3>
+        <p style="margin: 0; font-size: 12px; color: var(--ion-color-primary); font-weight: 600; cursor: pointer; display: flex; align-items: center;">
+          {{ langService.t('today') }}: {{ dataService.todayString | date:'dd MMM yyyy' }}
+        </p>
+      </div>
+
+      <!-- Combined transactions/delivery list -->
+      <ion-list lines="none" style="background: transparent; padding: 0;">
+        <div class="glass-item hover-scale" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" *ngFor="let tx of dataService.activeSiteTransactions().slice(0, 3)">
+          <div style="display: flex; align-items: center;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(48,209,88,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+              <ion-icon name="cash" color="secondary" style="font-size: 20px;"></ion-icon>
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--app-text-color);">Paid: {{ tx.workerName }}</h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+                {{ tx.type === 'Wage Payment' ? langService.t('wage_payment') : langService.t('adv') }} • {{ tx.paymentMode }}
+              </p>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 15px; font-weight: 700; color: var(--ion-color-secondary); font-family: monospace;">
+              - {{ formatCurrency(tx.amount) }}
+            </span>
+            <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">{{ tx.date | date:'dd MMM' }}</p>
+          </div>
+        </div>
+
+        <div class="glass-item hover-scale" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" *ngFor="let del of dataService.activeSiteDeliveries().slice(0, 2)">
+          <div style="display: flex; align-items: center;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,159,10,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+              <ion-icon name="cube" color="primary" style="font-size: 20px;"></ion-icon>
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--app-text-color);">Recv: {{ del.materialName }}</h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+                {{ del.quantity }} {{ del.unit }} • {{ del.supplierName }}
+              </p>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 15px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">
+              {{ formatCurrency(del.totalAmount) }}
+            </span>
+            <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-success); font-weight: 600;">
+              {{ del.status === 'Delivered' ? langService.t('delivered') : langService.t('pending') }}
+            </p>
+          </div>
+        </div>
+      </ion-list>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD MATERIAL ENTRY -->
+  <ion-modal [isOpen]="showMaterialModal()" (didDismiss)="closeMaterialModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('material_modal_title') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeMaterialModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--ion-color-medium);">
+            {{ langService.t('material_desc') }}
+          </p>
+
+          <!-- Purchase vs Rental Toggle -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('material_flow_label') }}</label>
+            <ion-segment [value]="matFormFlowType" (ionChange)="matFormFlowType = $any($event.detail.value); showCustomNameInput = false; matFormName = (matFormFlowType === 'Purchase' ? 'Cement (UltraTech)' : 'Steel Plate')" style="--background: rgba(30, 33, 45, 0.4); border-radius: 10px; margin-top: 6px;">
+              <ion-segment-button value="Purchase">
+                <ion-label style="font-size: 11px; font-weight: 700;">{{ langService.t('purchase') }}</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="Rental">
+                <ion-label style="font-size: 11px; font-weight: 700;">{{ langService.t('rental') }}</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+          </div>
+
+          <!-- Material Name with Custom Option -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('material_name') }}</label>
+            
+            <div *ngIf="!showCustomNameInput">
+              <ion-select [(ngModel)]="matFormName" (ionChange)="showCustomNameInput = ($event.detail.value === 'CUSTOM')" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+                <ng-container *ngIf="matFormFlowType === 'Purchase'">
+                  <ion-select-option value="Cement (UltraTech)">Cement (UltraTech)</ion-select-option>
+                  <ion-select-option value="Cement (Ambuja)">Cement (Ambuja)</ion-select-option>
+                  <ion-select-option value="Steel (Jindal Panther)">Steel (Jindal Panther)</ion-select-option>
+                  <ion-select-option value="Steel (Tata Tiscon)">Steel (Tata Tiscon)</ion-select-option>
+                  <ion-select-option value="Sand (River Sand)">Sand (River Sand)</ion-select-option>
+                  <ion-select-option value="Sand (M-Sand)">Sand (M-Sand)</ion-select-option>
+                  <ion-select-option value="Bricks (Red Clay)">Bricks (Red Clay)</ion-select-option>
+                </ng-container>
+                <ng-container *ngIf="matFormFlowType === 'Rental'">
+                  <ion-select-option value="Steel Plate">Steel Plate</ion-select-option>
+                  <ion-select-option value="Scaffolding Pipes">Scaffolding Pipes</ion-select-option>
+                  <ion-select-option value="Wooden Plank">Wooden Plank</ion-select-option>
+                  <ion-select-option value="Metal Props">Metal Props</ion-select-option>
+                </ng-container>
+                <ion-select-option value="CUSTOM" style="font-weight: bold; color: var(--ion-color-primary);">-- {{ langService.t('custom_material') }} --</ion-select-option>
+              </ion-select>
+            </div>
+            
+            <div *ngIf="showCustomNameInput" style="position: relative; margin-top: 6px;">
+              <ion-input [(ngModel)]="matFormName" placeholder="e.g. Scaffolding Clamps" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+              <span (click)="showCustomNameInput = false; matFormName = (matFormFlowType === 'Purchase' ? 'Cement (UltraTech)' : 'Steel Plate')" style="font-size: 11px; color: var(--ion-color-primary); font-weight: 700; text-decoration: underline; cursor: pointer; display: block; margin-top: 4px; text-align: right;">
+                {{ langService.t('common_materials') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Supplier Name -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('supplier_name') }}</label>
+            <ion-input [(ngModel)]="matFormSupplier" placeholder="e.g. Balaji Building Materials" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Quantity -->
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('qty') }}</label>
+            <ion-input type="number" [(ngModel)]="matFormQty" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Purchase Specific Fields -->
+          <div *ngIf="matFormFlowType === 'Purchase'" style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('unit') }}</label>
+            <ion-select [(ngModel)]="matFormUnit" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option value="Bags">Bags</ion-select-option>
+              <ion-select-option value="Tons">Tons</ion-select-option>
+              <ion-select-option value="Brass">Brass</ion-select-option>
+              <ion-select-option value="Pcs">Pcs</ion-select-option>
+            </ion-select>
+          </div>
+
+          <div *ngIf="matFormFlowType === 'Purchase'" style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('rate_per_unit') }} (₹)</label>
+            <ion-input type="number" [(ngModel)]="matFormRate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Rental Specific Fields -->
+          <div *ngIf="matFormFlowType === 'Rental'" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('size') }}</label>
+              <ion-input [(ngModel)]="matFormSize" placeholder="e.g. 3*3" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            </div>
+            <div>
+              <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('start_date') }}</label>
+              <ion-input type="date" [(ngModel)]="matFormStartDate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            </div>
+          </div>
+
+          <div *ngIf="matFormFlowType === 'Rental'" style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('rent_per_day') }} (₹)</label>
+            <ion-input type="number" [(ngModel)]="matFormRatePerDay" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <!-- Form Submit Buttons -->
+          <div style="display: flex; gap: 12px; margin-top: 10px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="closeMaterialModal()">
+              {{ langService.t('cancel') }}
+            </ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitMaterialDelivery()">
+              {{ matFormFlowType === 'Purchase' ? langService.t('receive_material') : langService.t('log_rental') }}
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: RECORD WAGE PAYMENT -->
+  <ion-modal [isOpen]="showPaymentModal()" (didDismiss)="closePaymentModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('payment_modal_title') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closePaymentModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--ion-color-medium);">
+            {{ langService.t('payment_desc') }}
+          </p>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('select_worker') }}</label>
+            <ion-select [(ngModel)]="payFormWorkerId" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option *ngFor="let w of dataService.activeSiteWorkers()" [value]="w.id">
+                {{ w.name }} ({{ w.role }} - Due: ₹{{ w.balanceDue }})
+              </ion-select-option>
+            </ion-select>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('payment_amt') }}</label>
+            <ion-input type="number" [(ngModel)]="payFormAmount" placeholder="e.g. 500" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('payment_mode') }}</label>
+            <ion-select [(ngModel)]="payFormMode" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+              <ion-select-option value="UPI">UPI (PhonePe/GPay)</ion-select-option>
+              <ion-select-option value="Cash">Cash</ion-select-option>
+              <ion-select-option value="Bank Transfer">Bank Transfer</ion-select-option>
+            </ion-select>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 10px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="closePaymentModal()">
+              {{ langService.t('cancel') }}
+            </ion-button>
+            <ion-button color="success" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitPayment()">
+              {{ langService.t('record_payment') }}
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: SETTINGS & LANGUAGE SELECTOR -->
+  <ion-modal [isOpen]="showSettingsModal()" (didDismiss)="showSettingsModal.set(false)">
+    <ng-template>
+      <app-settings-modal (dismiss)="showSettingsModal.set(false)"></app-settings-modal>
+    </ng-template>
+  </ion-modal>
+</ion-content>

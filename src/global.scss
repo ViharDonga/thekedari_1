@@ -1,0 +1,345 @@
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/* Custom Design System & Theme Variables */
+:root {
+  --font-family-system: 'Outfit', sans-serif;
+  --font-family-default: 'Outfit', sans-serif;
+
+  /* App Brand Palette (Industrial Dark Theme) */
+  --bg-dark-base: #0f1015;
+  --bg-dark-card: rgba(22, 24, 33, 0.75);
+  --bg-dark-item: rgba(30, 33, 45, 0.6);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(255, 159, 10, 0.4);
+
+  /* Overwrite Ionic Colors (Always Dark Mode Colors) */
+  --ion-font-family: 'Outfit', sans-serif;
+  
+  --ion-background-color: var(--bg-dark-base);
+  --ion-background-color-rgb: 15, 16, 21;
+  --ion-text-color: #f3f4f6;
+  --ion-text-color-rgb: 243, 244, 246;
+  --app-text-color: #f3f4f6;
+  --app-text-color-rgb: 243, 244, 246;
+
+  --ion-color-primary: #ff9f0a; /* Safety Amber */
+  --ion-color-primary-rgb: 255, 159, 10;
+  --ion-color-primary-contrast: #0b0c10;
+  --ion-color-primary-contrast-rgb: 11, 12, 16;
+  --ion-color-primary-shade: #e08c09;
+  --ion-color-primary-tint: #ffa922;
+
+  --ion-color-secondary: #30d158; /* Construct Green */
+  --ion-color-secondary-rgb: 48, 209, 88;
+  --ion-color-secondary-contrast: #0f1015;
+  --ion-color-secondary-contrast-rgb: 15, 16, 21;
+  --ion-color-secondary-shade: #2ab84e;
+  --ion-color-secondary-tint: #45d669;
+
+  --ion-color-tertiary: #64d2ff; /* Metal Blue */
+  --ion-color-tertiary-rgb: 100, 210, 255;
+  --ion-color-tertiary-contrast: #0f1015;
+  --ion-color-tertiary-contrast-rgb: 15, 16, 21;
+  --ion-color-tertiary-shade: #58b9e0;
+  --ion-color-tertiary-tint: #74d7ff;
+
+  --ion-color-success: #30d158;
+  --ion-color-warning: #ffd60a;
+  --ion-color-danger: #ff453a;
+  --ion-color-medium: #8e8e93;
+  --ion-color-light: #f2f2f7;
+
+  /* Card and Item variables */
+  --ion-card-background: var(--bg-dark-card);
+  --ion-item-background: var(--bg-dark-item);
+  --ion-border-color: var(--border-light);
+}
+
+/* Global Component Styling Overrides */
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--bg-dark-base);
+  color: var(--ion-text-color);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Beautiful custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark-base);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 159, 10, 0.2);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 159, 10, 0.4);
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: var(--bg-dark-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-item {
+  background: var(--bg-dark-item) !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px !important;
+  margin-bottom: 8px !important;
+  --border-style: none !important;
+  --inner-padding-end: 8px !important;
+}
+
+/* Gradient effects */
+.text-gradient {
+  background: linear-gradient(135deg, #ff9f0a 0%, #ff5e36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-green {
+  background: linear-gradient(135deg, #30d158 0%, #00a86b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-blue {
+  background: linear-gradient(135deg, #64d2ff 0%, #0a84ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-gradient-orange {
+  background: linear-gradient(135deg, rgba(255, 159, 10, 0.15) 0%, rgba(255, 94, 54, 0.05) 100%) !important;
+  border: 1px solid rgba(255, 159, 10, 0.2) !important;
+}
+
+.bg-gradient-green {
+  background: linear-gradient(135deg, rgba(48, 209, 88, 0.15) 0%, rgba(0, 168, 107, 0.05) 100%) !important;
+  border: 1px solid rgba(48, 209, 88, 0.2) !important;
+}
+
+.bg-gradient-blue {
+  background: linear-gradient(135deg, rgba(100, 210, 255, 0.15) 0%, rgba(10, 132, 255, 0.05) 100%) !important;
+  border: 1px solid rgba(100, 210, 255, 0.2) !important;
+}
+
+/* Micro-animations and hover effects */
+.hover-scale {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+}
+
+.hover-scale:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.active-scale:active {
+  transform: scale(0.97);
+}
+
+/* Ionic Component Customizations */
+ion-card {
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  margin: 12px 0;
+  transition: transform 0.2s ease-in-out;
+}
+
+ion-tab-bar {
+  --background: rgba(15, 16, 21, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-light);
+  padding-bottom: env(safe-area-inset-bottom);
+  --border: 0;
+}
+
+ion-tab-button {
+  --color: #8e8e93;
+  --color-selected: #ff9f0a;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+ion-header ion-toolbar {
+  --background: rgba(15, 16, 21, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  --border-color: var(--border-light);
+  --border-style: solid;
+  --border-width: 0 0 1px 0;
+}
+
+ion-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+ion-searchbar {
+  --background: rgba(30, 33, 45, 0.6) !important;
+  --border-radius: 12px !important;
+  --color: #ffffff !important;
+  --placeholder-color: #8e8e93 !important;
+  --icon-color: #ff9f0a !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+ion-badge {
+  font-family: 'Outfit', sans-serif;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* custom select styling */
+ion-select {
+  --background: rgba(30, 33, 45, 0.6);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 500;
+}
+
+/* FAB button styles */
+ion-fab-button {
+  --background: linear-gradient(135deg, #ff9f0a 0%, #ff5e36 100%);
+  --background-activated: #e08c09;
+  --color: #000000;
+  box-shadow: 0 4px 16px rgba(255, 159, 10, 0.4);
+}
+
+/* Light Theme Variables Overrides */
+body.light-theme {
+  --bg-dark-base: #f3f4f8;
+  --bg-dark-card: rgba(255, 255, 255, 0.85);
+  --bg-dark-item: rgba(240, 243, 248, 0.8);
+  --border-light: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(255, 159, 10, 0.5);
+
+  --ion-background-color: var(--bg-dark-base);
+  --ion-background-color-rgb: 243, 244, 248;
+  --ion-text-color: #121318;
+  --ion-text-color-rgb: 18, 19, 24;
+  --app-text-color: #121318;
+  --app-text-color-rgb: 18, 19, 24;
+
+  --ion-card-background: var(--bg-dark-card);
+  --ion-item-background: var(--bg-dark-item);
+  --ion-border-color: var(--border-light);
+
+  /* Set background color explicitly */
+  background-color: var(--bg-dark-base);
+  color: var(--ion-text-color);
+
+  /* Specific color overrides for text blocks that were styled white */
+  h2, h3, h4, 
+  .site-header-card h2,
+  .glass-panel h3, 
+  .glass-panel h2,
+  .glass-panel h4,
+  .glass-item h4,
+  label {
+    color: #121318 !important;
+  }
+
+  p {
+    color: #5d616d !important;
+  }
+
+  ion-toolbar {
+    --background: rgba(255, 255, 255, 0.8) !important;
+    --border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  ion-tab-bar {
+    --background: rgba(255, 255, 255, 0.85) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  ion-searchbar {
+    --background: rgba(240, 243, 248, 0.8) !important;
+    --color: #121318 !important;
+    --placeholder-color: #7d818d !important;
+    --icon-color: #ff9f0a !important;
+  }
+
+  ion-select {
+    --background: rgba(240, 243, 248, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: #121318 !important;
+  }
+
+  ion-input {
+    --background: rgba(240, 243, 248, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: #121318 !important;
+  }
+
+  ion-modal {
+    --background: var(--bg-dark-base) !important;
+  }
+
+  .glass-panel {
+    background: var(--bg-dark-card);
+    border: 1px solid var(--border-light);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+  }
+
+  .glass-item {
+    background: var(--bg-dark-item) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  /* Adjust visual elements for readability */
+  span {
+    color: #3e4149;
+  }
+
+  /* Make sure currency and numerical stats remain visible and readable */
+  .text-gradient-green {
+    background: linear-gradient(135deg, #1f9e42 0%, #008756 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #e08c09 0%, #ff5e36 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Scrollbar overrides for light mode */
+  ::-webkit-scrollbar-track {
+    background: #f3f4f8;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 159, 10, 0.3);
+  }
+}

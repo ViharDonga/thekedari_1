@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: thekedari-web
+    runtime: static
+    buildCommand: npm run build
+    publishDir: www
+    routes:
+      - type: redirect
+        source: /download
+        destination: /assets/thekedari.apk
+      - type: rewrite
+        source: /*
+        destination: /index.html

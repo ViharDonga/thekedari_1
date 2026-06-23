@@ -1,0 +1,544 @@
+<ion-header [translucent]="true" class="no-print">
+  <ion-toolbar class="glass-panel">
+    <div style="padding: 6px 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--app-text-color); display: flex; align-items: center;">
+          <ion-icon name="stats-chart" color="primary" style="margin-right: 8px; font-size: 24px;"></ion-icon>
+          {{ langService.t('tab_reports') }}
+        </h1>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium); font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{{ langService.t('spent_breakdown_label') || 'Expense Analytics' }}</p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <ion-button (click)="printReport()" fill="clear" color="primary" style="--padding-start: 4px; --padding-end: 4px; margin: 0;">
+          <ion-icon name="print" style="font-size: 22px;"></ion-icon>
+        </ion-button>
+        <ion-button (click)="showSettingsModal.set(true)" fill="clear" color="primary" style="--padding-start: 4px; --padding-end: 4px; margin: 0;">
+          <ion-icon name="settings-outline" style="font-size: 22px;"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Print Only Header -->
+  <div class="print-only-header">
+    <h1>{{ langService.t('app_title') }} - {{ langService.t('sub_title') }}</h1>
+    <p>{{ langService.t('spent_report_official') || 'OFFICIAL CONSTRUCTION SITE COST REPORT' }}</p>
+    <div style="text-align: right; font-size: 11px; margin-top: 10px; color: #555;">
+      Date Generated: {{ dataService.todayString | date:'dd MMM yyyy' }}
+    </div>
+  </div>
+
+  <!-- Background Decorative Glows -->
+  <div class="no-print" style="position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,159,10,0.05) 0%, rgba(0,0,0,0) 70%); top: -50px; right: -100px; pointer-events: none; z-index: -1;"></div>
+  <div class="no-print" style="position: absolute; width: 350px; height: 350px; background: radial-gradient(circle, rgba(90,200,250,0.04) 0%, rgba(0,0,0,0) 70%); bottom: 50px; left: -100px; pointer-events: none; z-index: -1;"></div>
+
+  <div class="ion-padding" style="padding-top: 12px;">
+    
+    <!-- Segment Control (Summary vs Details vs Labour) -->
+    <ion-segment [value]="activeSegment()" (ionChange)="activeSegment.set($any($event.detail.value))" class="no-print" style="margin-bottom: 16px; --background: rgba(30, 33, 45, 0.4); border-radius: 12px; padding: 4px;">
+      <ion-segment-button value="summary" style="--color-checked: var(--app-text-color); --indicator-color: var(--ion-color-primary);">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('all_sites_summary') }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="detail" style="--color-checked: var(--app-text-color); --indicator-color: var(--ion-color-primary);">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('site_detail_report') }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="labour" style="--color-checked: var(--app-text-color); --indicator-color: var(--ion-color-primary);">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('labour_report') }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <!-- ==================== 1. ALL SITES SUMMARY ==================== -->
+    <div *ngIf="activeSegment() === 'summary'">
+      
+      <!-- Multi-Site Total Spent Aggregates Card -->
+      <div class="glass-panel report-grid-card" style="margin-bottom: 16px;">
+        <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary); letter-spacing: 0.5px;">{{ langService.t('total_spent_report') }}</span>
+        <h2 style="margin: 4px 0 16px 0; font-size: 20px; font-weight: 800; color: var(--app-text-color);">{{ langService.t('multi_site_cost_overview') || 'Multi-Site Portfolio Spent' }}</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div>
+            <span style="font-size: 12px; color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('total_spent') }}</span>
+            <h2 style="margin: 4px 0 0 0; font-size: 24px; font-weight: 800; color: var(--app-text-color);" class="text-gradient">
+              {{ formatCurrency(totalSpent()) }}
+            </h2>
+          </div>
+          <div>
+            <span style="font-size: 12px; color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('budget') }}</span>
+            <h2 style="margin: 4px 0 0 0; font-size: 24px; font-weight: 800; color: var(--app-text-color);">
+              {{ formatCurrency(totalBudget()) }}
+            </h2>
+          </div>
+        </div>
+
+        <!-- Portfolio Progress Bar -->
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--ion-color-medium); margin-bottom: 6px;">
+            <span>{{ langService.t('consumed') }}: {{ getSpentPercentOfBudget(totalSpent(), totalBudget()) | percent:'1.0-1' }}</span>
+            <span>{{ langService.t('remaining') }}: {{ formatCurrency(totalRemaining()) }}</span>
+          </div>
+          <ion-progress-bar 
+            [value]="getSpentPercentOfBudget(totalSpent(), totalBudget())" 
+            color="primary"
+            style="height: 10px; border-radius: 5px; --progress-background: rgba(255,255,255,0.05);"
+          ></ion-progress-bar>
+        </div>
+
+        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <span style="font-size: 11px; color: var(--ion-color-medium); display: block;">{{ langService.t('spent_wages') }}</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--ion-color-secondary);">{{ formatCurrency(totalWages()) }}</span>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: var(--ion-color-medium); display: block;">{{ langService.t('spent_materials') }}</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--ion-color-primary);">{{ formatCurrency(totalMaterials()) }}</span>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: var(--ion-color-medium); display: block;">{{ langService.t('spent_rentals') }}</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--ion-color-tertiary);">{{ formatCurrency(totalRentals()) }}</span>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: var(--ion-color-medium); display: block;">{{ langService.t('other_expenses') }}</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--app-text-color);">{{ formatCurrency(totalOther()) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison List of Individual Sites -->
+      <h3 class="no-print" style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 20px 0 12px 4px;">
+        {{ langService.t('individual_site_spent') || 'Site-Wise Spent Details' }}
+      </h3>
+      
+      <!-- Grid format for screen, visible in print too -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="glass-panel hover-scale" style="padding: 16px; cursor: pointer;" *ngFor="let s of dataService.sites()" (click)="viewSiteDetails(s.id)">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+              <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--app-text-color);">{{ s.name }}</h4>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--ion-color-medium);">
+                <ion-icon name="location" style="margin-right: 4px; vertical-align: middle; color: var(--ion-color-primary);"></ion-icon>
+                {{ s.location }}
+              </p>
+            </div>
+            <span style="font-size: 12px; font-weight: 700; color: var(--app-text-color);">
+              {{ formatCurrency(s.totalExpenses) }} / <span style="color: var(--ion-color-medium); font-weight: 500;">{{ formatCurrency(s.budget) }}</span>
+            </span>
+          </div>
+
+          <ion-progress-bar 
+            [value]="getBudgetUsagePercent(s)" 
+            [color]="getBudgetUsagePercent(s) > 0.85 ? 'danger' : getBudgetUsagePercent(s) > 0.6 ? 'warning' : 'success'"
+            style="height: 6px; border-radius: 3px; margin: 10px 0; --progress-background: rgba(255,255,255,0.05);"
+          ></ion-progress-bar>
+
+          <!-- Breakdown labels -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; font-size: 11px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--ion-color-medium);">{{ langService.t('spent_wages') }}:</span>
+              <span style="font-weight: 700; color: var(--app-text-color);">{{ formatCurrency(s.spentWages) }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--ion-color-medium);">{{ langService.t('spent_materials') }}:</span>
+              <span style="font-weight: 700; color: var(--app-text-color);">{{ formatCurrency(s.spentMaterials) }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--ion-color-medium);">{{ langService.t('spent_rentals') }}:</span>
+              <span style="font-weight: 700; color: var(--app-text-color);">{{ formatCurrency(s.spentRentals) }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--ion-color-medium);">{{ langService.t('other_expenses') }}:</span>
+              <span style="font-weight: 700; color: var(--app-text-color);">{{ formatCurrency(s.otherExpenses) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. INDIVIDUAL SITE DETAIL REPORT ==================== -->
+    <div *ngIf="activeSegment() === 'detail'">
+      
+      <!-- Site Selector -->
+      <div class="site-selector-container no-print">
+        <label>{{ langService.t('select_site_report') }}</label>
+        <ion-select 
+          [value]="selectedSiteId()" 
+          interface="popover" 
+          (ionChange)="selectedSiteId.set($event.detail.value)"
+          toggleIcon="chevron-down"
+        >
+          <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
+            {{ s.name }}
+          </ion-select-option>
+        </ion-select>
+      </div>
+
+      <!-- Printable Report Body -->
+      <div class="glass-panel" style="padding: 16px;">
+        
+        <!-- Header Info -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 16px;">
+          <div>
+            <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary); letter-spacing: 0.5px;">{{ langService.t('site_detail_report') }}</span>
+            <h2 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 700; color: var(--app-text-color);">{{ selectedSite().name }}</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--ion-color-medium); display: flex; align-items: center;">
+              <ion-icon name="location" style="margin-right: 4px; color: var(--ion-color-primary);"></ion-icon>
+              {{ selectedSite().location }}
+            </p>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 11px; color: var(--ion-color-medium); display: block;">{{ langService.t('supervisor') }}</span>
+            <span style="font-size: 13px; font-weight: 700; color: var(--app-text-color);">{{ selectedSite().supervisorName }}</span>
+          </div>
+        </div>
+
+        <!-- Budget progress -->
+        <div style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px;">
+            <span style="color: var(--ion-color-medium); font-weight: 500;">{{ langService.t('budget_utilization') }}</span>
+            <span style="font-weight: 700; color: var(--app-text-color);">
+              {{ formatCurrency(selectedSite().totalExpenses) }} / 
+              <span style="color: var(--ion-color-medium); font-weight: 500;">{{ formatCurrency(selectedSite().budget) }}</span>
+            </span>
+          </div>
+          <ion-progress-bar 
+            [value]="getBudgetUsagePercent(selectedSite())" 
+            [color]="getBudgetUsagePercent(selectedSite()) > 0.85 ? 'danger' : getBudgetUsagePercent(selectedSite()) > 0.6 ? 'warning' : 'success'"
+            style="height: 12px; border-radius: 6px; --progress-background: rgba(255,255,255,0.05);"
+          ></ion-progress-bar>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px; color: var(--ion-color-medium);">
+            <span>{{ langService.t('consumed') }}: {{ getBudgetUsagePercent(selectedSite()) | percent:'1.0-1' }}</span>
+            <span>{{ langService.t('remaining') }}: {{ formatCurrency(selectedSite().budget - selectedSite().totalExpenses) }}</span>
+          </div>
+        </div>
+
+        <!-- Cost Breakdown Allocation Grid -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 16px 0;">
+            {{ langService.t('cost_breakdown') }}
+          </h3>
+
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            
+            <!-- Wages -->
+            <div class="bar-container">
+              <div class="cost-row">
+                <span style="display: flex; align-items: center; color: var(--app-text-color);">
+                  <span style="width: 8px; height: 8px; background: var(--ion-color-secondary); border-radius: 50%; margin-right: 8px;"></span>
+                  {{ langService.t('spent_wages') }}
+                </span>
+                <span style="color: var(--app-text-color);">
+                  {{ formatCurrency(selectedSite().spentWages) }}
+                  <span style="color: var(--ion-color-medium); font-weight: 400; font-size: 11px;">({{ getWagesPercent(selectedSite()) | percent:'1.0-0' }})</span>
+                </span>
+              </div>
+              <ion-progress-bar [value]="getWagesPercent(selectedSite())" color="secondary" style="height: 6px; border-radius: 3px;"></ion-progress-bar>
+            </div>
+
+            <!-- Materials -->
+            <div class="bar-container">
+              <div class="cost-row">
+                <span style="display: flex; align-items: center; color: var(--app-text-color);">
+                  <span style="width: 8px; height: 8px; background: var(--ion-color-primary); border-radius: 50%; margin-right: 8px;"></span>
+                  {{ langService.t('spent_materials') }}
+                </span>
+                <span style="color: var(--app-text-color);">
+                  {{ formatCurrency(selectedSite().spentMaterials) }}
+                  <span style="color: var(--ion-color-medium); font-weight: 400; font-size: 11px;">({{ getMaterialsPercent(selectedSite()) | percent:'1.0-0' }})</span>
+                </span>
+              </div>
+              <ion-progress-bar [value]="getMaterialsPercent(selectedSite())" color="primary" style="height: 6px; border-radius: 3px;"></ion-progress-bar>
+            </div>
+
+            <!-- Rentals -->
+            <div class="bar-container">
+              <div class="cost-row">
+                <span style="display: flex; align-items: center; color: var(--app-text-color);">
+                  <span style="width: 8px; height: 8px; background: var(--ion-color-tertiary); border-radius: 50%; margin-right: 8px;"></span>
+                  {{ langService.t('spent_rentals') }}
+                </span>
+                <span style="color: var(--app-text-color);">
+                  {{ formatCurrency(selectedSite().spentRentals) }}
+                  <span style="color: var(--ion-color-medium); font-weight: 400; font-size: 11px;">({{ getRentalsPercent(selectedSite()) | percent:'1.0-0' }})</span>
+                </span>
+              </div>
+              <ion-progress-bar [value]="getRentalsPercent(selectedSite())" color="tertiary" style="height: 6px; border-radius: 3px;"></ion-progress-bar>
+            </div>
+
+            <!-- Others -->
+            <div class="bar-container">
+              <div class="cost-row">
+                <span style="display: flex; align-items: center; color: var(--app-text-color);">
+                  <span style="width: 8px; height: 8px; background: #8e8e93; border-radius: 50%; margin-right: 8px;"></span>
+                  {{ langService.t('other_expenses') }}
+                </span>
+                <span style="color: var(--app-text-color);">
+                  {{ formatCurrency(selectedSite().otherExpenses) }}
+                  <span style="color: var(--ion-color-medium); font-weight: 400; font-size: 11px;">({{ getOthersPercent(selectedSite()) | percent:'1.0-0' }})</span>
+                </span>
+              </div>
+              <ion-progress-bar [value]="getOthersPercent(selectedSite())" color="medium" style="height: 6px; border-radius: 3px;"></ion-progress-bar>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rented Materials Summary list inside individual report -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px; margin-bottom: 20px;">
+          <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 0;">
+            {{ langService.t('equipment_rented') }}
+          </h3>
+          <div *ngIf="dataService.activeSiteRentals().length === 0" style="padding: 12px; text-align: center; color: var(--ion-color-medium); font-size: 13px;">
+            {{ langService.t('no_rentals_tracked') || 'No active or past rentals on this site.' }}
+          </div>
+          <div *ngFor="let item of dataService.activeSiteRentals()" style="padding: 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.03);">
+            <div>
+              <h4 style="margin: 0; font-size: 13px; font-weight: 700; color: var(--app-text-color);">{{ item.name }} ({{ item.size }})</h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+                Qty: {{ item.quantity }} • Rate: ₹{{ item.ratePerDay }}/day
+              </p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">
+                {{ item.startDate | date:'dd MMM' }} - {{ (item.endDate ? (item.endDate | date:'dd MMM yyyy') : langService.t('active')) }} ({{ dataService.getRentalDays(item.startDate, item.endDate) }} {{ langService.t('days_on_rent') }})
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--ion-color-tertiary); font-family: monospace;">
+                {{ formatCurrency(dataService.calculateRentalCost(item)) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Labour Attendance & Wages Summary inside individual report -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
+          <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 0;">
+            Labour Monthly Attendance & Wages
+          </h3>
+          <div *ngIf="selectedSiteWorkers().length === 0" style="padding: 12px; text-align: center; color: var(--ion-color-medium); font-size: 13px;">
+            No workers assigned to this site.
+          </div>
+          
+          <div style="overflow-x: auto;" *ngIf="selectedSiteWorkers().length > 0">
+            <table class="spent-table" style="width: 100%; border-collapse: collapse; margin-top: 8px; color: var(--app-text-color);">
+              <thead>
+                <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); text-align: left; font-size: 11px; color: var(--ion-color-medium);">
+                  <th style="padding: 8px 4px; border: none; background: transparent;">Worker</th>
+                  <th style="padding: 8px 4px; text-align: center; border: none; background: transparent;">Days (P / HD / OT / A)</th>
+                  <th style="padding: 8px 4px; text-align: right; border: none; background: transparent;">Total Wages</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let worker of selectedSiteWorkers()" style="border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px;">
+                  <td style="padding: 10px 4px; border: none;">
+                    <span style="font-weight: 700; display: block;">{{ worker.name }}</span>
+                    <span style="font-size: 10px; color: var(--ion-color-medium);">{{ worker.role }}</span>
+                  </td>
+                  <td style="padding: 10px 4px; text-align: center; font-family: monospace; white-space: nowrap; border: none;">
+                    <span *ngIf="getWorkerMonthlyAttendanceStats(worker.id) as stats">
+                      <span style="color: var(--ion-color-success);">{{ stats.present }}</span>/<!--
+                      --><span style="color: var(--ion-color-warning);">{{ stats.halfDay }}</span>/<!--
+                      --><span style="color: var(--ion-color-primary);">{{ stats.overtime }}</span>/<!--
+                      --><span style="color: var(--ion-color-danger);">{{ stats.absent }}</span>
+                    </span>
+                  </td>
+                  <td style="padding: 10px 4px; text-align: right; font-weight: 700; font-family: monospace; border: none;" *ngIf="getWorkerMonthlyAttendanceStats(worker.id) as stats">
+                    {{ formatCurrency(stats.totalWages) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size: 9px; color: var(--ion-color-medium); margin-top: 8px; text-align: center;">Legend: P / HD / OT / A = Present / Half Day / Overtime / Absent days</p>
+        </div>
+
+      </div>
+
+      <!-- Floating Print Action Button on Screens -->
+      <div class="no-print" style="margin-top: 20px; text-align: center;">
+        <ion-button color="primary" expand="block" (click)="printReport()" style="--border-radius: 12px; font-weight: 700;">
+          <ion-icon name="print" style="margin-right: 8px;"></ion-icon>
+          {{ langService.t('print_report') }}
+        </ion-button>
+      </div>
+
+    </div>
+
+    <!-- ==================== 3. INDIVIDUAL LABOUR ATTENDANCE & LEDGER REPORT ==================== -->
+    <div *ngIf="activeSegment() === 'labour'">
+      
+      <!-- Select Menus -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;" class="no-print">
+        <div class="site-selector-container" style="margin-bottom: 0;">
+          <label>Select Labour</label>
+          <ion-select 
+            [value]="selectedWorkerId()" 
+            interface="popover" 
+            (ionChange)="selectedWorkerId.set($event.detail.value)"
+            toggleIcon="chevron-down"
+          >
+            <ion-select-option *ngFor="let w of dataService.workers()" [value]="w.id">
+              {{ w.name }} ({{ w.role }})
+            </ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="site-selector-container" style="margin-bottom: 0;">
+          <label>Select Month</label>
+          <ion-select 
+            [value]="selectedMonth()" 
+            interface="popover" 
+            (ionChange)="selectedMonth.set($event.detail.value)"
+            toggleIcon="chevron-down"
+          >
+            <ion-select-option value="2026-06">June 2026</ion-select-option>
+            <ion-select-option value="2026-05">May 2026</ion-select-option>
+            <ion-select-option value="2026-04">April 2026</ion-select-option>
+            <ion-select-option value="2026-03">March 2026</ion-select-option>
+            <ion-select-option value="2026-02">February 2026</ion-select-option>
+            <ion-select-option value="2026-01">January 2026</ion-select-option>
+          </ion-select>
+        </div>
+      </div>
+
+      <!-- Printable Report Body -->
+      <div class="glass-panel" style="padding: 16px;">
+        
+        <!-- Header Info -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 16px;">
+          <div>
+            <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary); letter-spacing: 0.5px;">Labour Ledger & Attendance Report</span>
+            <h2 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 700; color: var(--app-text-color);">{{ selectedWorker().name }}</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--ion-color-medium); display: flex; align-items: center; gap: 6px;">
+              <ion-badge color="tertiary" style="font-size: 9px; padding: 2px 5px;">{{ selectedWorker().role }}</ion-badge>
+              <span>Daily Rate: ₹{{ selectedWorker().dailyRate }}/day</span>
+            </p>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 11px; color: var(--ion-color-medium); display: block;">Employment Type</span>
+            <span style="font-size: 13px; font-weight: 700; color: var(--app-text-color);">{{ selectedWorker().employmentType }}</span>
+          </div>
+        </div>
+
+        <!-- Monthly Attendance Grid -->
+        <div class="glass-panel" style="padding: 16px; margin-bottom: 16px; background: rgba(0, 0, 0, 0.2);">
+          <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 0;">
+            Monthly Attendance - {{ getSelectedMonthLabel() }}
+          </h3>
+          
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-bottom: 12px;">
+            <div *ngFor="let dayName of ['M', 'T', 'W', 'T', 'F', 'S', 'S']" style="font-size: 10px; font-weight: 700; color: var(--ion-color-medium); padding-bottom: 4px;">
+              {{ dayName }}
+            </div>
+             <div *ngFor="let day of getMonthDays()" 
+                  [style.background]="getAttendanceBgColor(selectedWorker().id, day)"
+                  [style.color]="getAttendanceTextColor(selectedWorker().id, day)"
+                  [style.border]="day === getCurrentDay() ? '1px solid var(--ion-color-primary)' : 'none'"
+                  style="border-radius: 8px; padding: 6px 0; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 38px; line-height: 1.1;">
+              <span>{{ day }}</span>
+              <span style="font-size: 8px; font-weight: 800;" *ngIf="getAttendanceStatusShort(selectedWorker().id, day) as sh">
+                {{ sh }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; font-size: 10px;">
+            <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+              <span style="width: 8px; height: 8px; background: rgba(48,209,88,0.15); border-radius: 2px;"></span> P
+            </span>
+            <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+              <span style="width: 8px; height: 8px; background: rgba(255,69,58,0.15); border-radius: 2px;"></span> A
+            </span>
+            <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+              <span style="width: 8px; height: 8px; background: rgba(255,214,10,0.15); border-radius: 2px;"></span> HD
+            </span>
+            <span style="display: flex; align-items: center; gap: 4px; color: var(--ion-color-medium);">
+              <span style="width: 8px; height: 8px; background: rgba(100,210,255,0.15); border-radius: 2px;"></span> OT
+            </span>
+          </div>
+        </div>
+
+        <!-- Wages & Payout Summary Card -->
+        <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 20px 0 12px 0;">
+          Wages & Payment Summary
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="glass-panel" style="padding: 12px; border-left: 4px solid var(--ion-color-secondary); background: rgba(255,255,255,0.01);">
+            <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">Total Earned ({{ getSelectedMonthShortName() }})</span>
+            <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">
+              {{ formatCurrency(getWorkerMonthlyAttendanceStats(selectedWorker().id).totalWages) }}
+            </h3>
+          </div>
+          <div class="glass-panel" style="padding: 12px; border-left: 4px solid var(--ion-color-success); background: rgba(255,255,255,0.01);">
+            <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">Total Wages Paid</span>
+            <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">
+              {{ formatCurrency(getWorkerTotalPaidWages(selectedWorker().id)) }}
+            </h3>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+          <div class="glass-panel" style="padding: 12px; border-left: 4px solid var(--ion-color-primary); background: rgba(255,255,255,0.01);">
+            <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">Balance Due</span>
+            <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">
+              {{ formatCurrency(selectedWorker().balanceDue) }}
+            </h3>
+          </div>
+          <div class="glass-panel" style="padding: 12px; border-left: 4px solid var(--ion-color-warning); background: rgba(255,255,255,0.01);">
+            <span style="font-size: 11px; color: var(--ion-color-medium); font-weight: 500;">Advance Balance</span>
+            <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">
+              {{ formatCurrency(selectedWorker().advancePaid) }}
+            </h3>
+          </div>
+        </div>
+
+        <!-- Ledger History List -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
+          <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 0;">
+            Labour Ledger History
+          </h3>
+          <div *ngIf="getWorkerTransactions(selectedWorker().id).length === 0" style="padding: 12px; text-align: center; color: var(--ion-color-medium); font-size: 13px;">
+            No payouts or advances recorded for this worker.
+          </div>
+          
+          <ion-list lines="none" style="background: transparent; padding: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-light); padding: 8px 0;" *ngFor="let tx of getWorkerTransactions(selectedWorker().id)">
+              <div>
+                <h4 style="margin: 0; font-size: 13px; font-weight: 700; color: var(--app-text-color);">
+                  {{ tx.type === 'Wage Payment' ? langService.t('wage_payment') : langService.t('adv') }}
+                </h4>
+                <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">
+                  {{ tx.paymentMode }} • {{ tx.date | date:'dd MMM yyyy' }}
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 13px; font-weight: 700; color: var(--ion-color-secondary); font-family: monospace;">
+                  - ₹{{ tx.amount }}
+                </span>
+              </div>
+            </div>
+          </ion-list>
+        </div>
+
+      </div>
+
+      <!-- Floating Print Action Button on Screens -->
+      <div class="no-print" style="margin-top: 20px; text-align: center;">
+        <ion-button color="primary" expand="block" (click)="printReport()" style="--border-radius: 12px; font-weight: 700;">
+          <ion-icon name="print" style="margin-right: 8px;"></ion-icon>
+          {{ langService.t('print_report') }}
+        </ion-button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL: SETTINGS & LANGUAGE SELECTOR -->
+  <ion-modal [isOpen]="showSettingsModal()" (didDismiss)="showSettingsModal.set(false)">
+    <ng-template>
+      <app-settings-modal (dismiss)="showSettingsModal.set(false)"></app-settings-modal>
+    </ng-template>
+  </ion-modal>
+</ion-content>
