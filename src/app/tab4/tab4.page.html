@@ -38,15 +38,23 @@
   <div class="ion-padding" style="padding-top: 12px;">
     
     <!-- Segment Control (Summary vs Details vs Labour) -->
-    <ion-segment [value]="activeSegment()" (ionChange)="activeSegment.set($any($event.detail.value))" class="no-print" style="margin-bottom: 16px; --background: rgba(30, 33, 45, 0.4); border-radius: 12px; padding: 4px;">
+    <ion-segment
+      [value]="activeSegment()"
+      (ionChange)="activeSegment.set($any($event.detail.value))"
+      scrollable="true"
+      class="no-print report-segment"
+    >
       <ion-segment-button value="summary" style="--color-checked: var(--app-text-color); --indicator-color: var(--ion-color-primary);">
-        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('all_sites_summary') }}</ion-label>
+        <ion-icon name="bar-chart" style="font-size: 16px; margin-bottom: 2px;"></ion-icon>
+        <ion-label>{{ langService.t('all_sites_summary') }}</ion-label>
       </ion-segment-button>
       <ion-segment-button value="detail" style="--color-checked: var(--app-text-color); --indicator-color: var(--ion-color-primary);">
-        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('site_detail_report') }}</ion-label>
+        <ion-icon name="business" style="font-size: 16px; margin-bottom: 2px;"></ion-icon>
+        <ion-label>{{ langService.t('site_detail_report') }}</ion-label>
       </ion-segment-button>
       <ion-segment-button value="labour" style="--color-checked: var(--app-text-color); --indicator-color: var(--ion-color-primary);">
-        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('labour_report') }}</ion-label>
+        <ion-icon name="person" style="font-size: 16px; margin-bottom: 2px;"></ion-icon>
+        <ion-label>{{ langService.t('labour_report') }}</ion-label>
       </ion-segment-button>
     </ion-segment>
 

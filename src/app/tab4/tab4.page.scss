@@ -99,6 +99,25 @@
   display: none;
 }
 
+.report-segment {
+  margin-bottom: 16px;
+  --background: rgba(30, 33, 45, 0.4);
+  border-radius: 12px;
+  padding: 4px;
+
+  ion-segment-button {
+    --padding-start: 12px;
+    --padding-end: 12px;
+    min-width: max-content;
+
+    ion-label {
+      font-weight: 700;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  }
+}
+
 .site-selector-container {
   display: flex;
   align-items: center;
