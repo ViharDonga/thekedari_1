@@ -33,7 +33,7 @@ services:
   - type: web
     name: thekedari-web
     runtime: static
-    buildCommand: npm install --legacy-peer-deps && node scripts/generate-env.js && npm run build
+    buildCommand: npm ci && node scripts/generate-env.js && npm run build
     staticPublishPath: www
     envVars:
       - key: API_URL
