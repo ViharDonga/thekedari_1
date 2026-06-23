@@ -13,15 +13,16 @@
     "start": "node ./node_modules/@nestjs/cli/bin/nest.js start",
     "start:dev": "node ./node_modules/@nestjs/cli/bin/nest.js start --watch",
     "start:debug": "node ./node_modules/@nestjs/cli/bin/nest.js start --debug --watch",
-    "start:prod": "node dist/src/main.js",
-    "start:render": "prisma migrate deploy && node scripts/ensure-admin.js && node dist/src/main.js",
+    "start:prod": "prisma migrate deploy && node scripts/ensure-admin.js && node dist/src/main.js",
+    "start:render": "npm run start:prod",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "db:test": "node scripts/test-db-connection.js",
-    "db:wipe": "ts-node prisma/wipe-all.ts"
+    "db:wipe": "ts-node prisma/wipe-all.ts",
+    "admin:reset-password": "node scripts/reset-admin-password.js"
   },
   "dependencies": {
     "@nestjs/cli": "^10.0.0",

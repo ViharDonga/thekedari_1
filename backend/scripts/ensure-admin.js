@@ -3,16 +3,17 @@ const bcrypt = require('bcryptjs');
 
 async function main() {
   const prisma = new PrismaClient();
-  const userCount = await prisma.user.count();
+  const username = process.env.ADMIN_USERNAME || 'admin';
+  const password = process.env.ADMIN_PASSWORD || 'admin123';
 
-  if (userCount > 0) {
-    console.log('Admin bootstrap skipped: users already exist.');
+  const existing = await prisma.user.findUnique({ where: { username } });
+
+  if (existing) {
+    console.log(`Admin "${username}" already exists. Login with ADMIN_PASSWORD from Render env (default admin123).`);
     await prisma.$disconnect();
     return;
   }
 
-  const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin123';
   const passwordHash = await bcrypt.hash(password, 10);
 
   await prisma.user.create({
