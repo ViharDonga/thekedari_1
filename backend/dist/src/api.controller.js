@@ -25,6 +25,9 @@ let ApiController = class ApiController {
         this.apiService = apiService;
         this.authService = authService;
     }
+    health() {
+        return { ok: true, service: 'thekedari-api' };
+    }
     login(body) {
         return this.authService.login(body.username, body.password);
     }
@@ -105,6 +108,12 @@ let ApiController = class ApiController {
     }
 };
 exports.ApiController = ApiController;
+__decorate([
+    (0, common_1.Get)('health'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ApiController.prototype, "health", null);
 __decorate([
     (0, common_1.Post)('auth/login'),
     __param(0, (0, common_1.Body)()),

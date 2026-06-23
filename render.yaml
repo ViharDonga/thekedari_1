@@ -13,7 +13,7 @@ services:
     plan: free
     buildCommand: npm install && npx prisma generate && npm run build && npx prisma migrate deploy
     startCommand: npm run start:prod
-    healthCheckPath: /api/public/sites
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production

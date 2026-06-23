@@ -14,6 +14,11 @@ export class ApiController {
     private readonly authService: AuthService,
   ) {}
 
+  @Get('health')
+  health() {
+    return { ok: true, service: 'thekedari-api' };
+  }
+
   @Post('auth/login')
   login(@Body() body: { username: string; password: string }) {
     return this.authService.login(body.username, body.password);

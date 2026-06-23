@@ -40,8 +40,8 @@ export declare class ApiService {
         id: string;
         name: string;
         role: string;
-        dailyRate: number;
         siteId: string;
+        dailyRate: number;
         advancePaid: number;
         balanceDue: number;
         statusToday: string;
@@ -74,8 +74,8 @@ export declare class ApiService {
     getTransactions(user: JwtPayload): Promise<{
         id: string;
         siteId: string;
-        date: string;
         workerId: string;
+        date: string;
         workerName: string;
         amount: number;
         type: string;
@@ -84,10 +84,10 @@ export declare class ApiService {
     getAttendanceRecords(user: JwtPayload): Promise<{
         id: string;
         siteId: string;
+        workerId: string;
         overtimeHours: number;
         status: string;
         date: string;
-        workerId: string;
         wageEarned: number;
     }[]>;
     getRentals(user: JwtPayload): Promise<{
@@ -103,9 +103,9 @@ export declare class ApiService {
     }[]>;
     getBookings(user: JwtPayload): Promise<{
         id: string;
-        dailyRate: number;
         siteId: string;
         workerId: string;
+        dailyRate: number;
         workerName: string;
         siteName: string;
         bookingDate: string;
@@ -122,8 +122,8 @@ export declare class ApiService {
         id: string;
         name: string;
         role: string;
-        dailyRate: number;
         siteId: string;
+        dailyRate: number;
         advancePaid: number;
         balanceDue: number;
         statusToday: string;
@@ -136,8 +136,8 @@ export declare class ApiService {
         id: string;
         name: string;
         role: string;
-        dailyRate: number;
         siteId: string;
+        dailyRate: number;
         advancePaid: number;
         balanceDue: number;
         statusToday: string;
@@ -149,8 +149,8 @@ export declare class ApiService {
     payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment', user: JwtPayload): Promise<{
         id: string;
         siteId: string;
-        date: string;
         workerId: string;
+        date: string;
         workerName: string;
         amount: number;
         type: string;
@@ -212,9 +212,9 @@ export declare class ApiService {
         remarks: string;
     }, user: JwtPayload): Promise<{
         id: string;
-        dailyRate: number;
         siteId: string;
         workerId: string;
+        dailyRate: number;
         workerName: string;
         siteName: string;
         bookingDate: string;

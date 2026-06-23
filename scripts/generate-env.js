@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-let base = process.env.API_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000';
+let base =
+  process.env.API_URL ||
+  process.env.RENDER_EXTERNAL_URL ||
+  'https://thekedari-api.onrender.com';
 base = base.replace(/\/$/, '');
 const apiUrl = base.endsWith('/api') ? base : `${base}/api`;
 

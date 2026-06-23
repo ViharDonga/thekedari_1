@@ -5,6 +5,10 @@ export declare class ApiController {
     private readonly apiService;
     private readonly authService;
     constructor(apiService: ApiService, authService: AuthService);
+    health(): {
+        ok: boolean;
+        service: string;
+    };
     login(body: {
         username: string;
         password: string;
@@ -23,11 +27,11 @@ export declare class ApiController {
     }>;
     listUsers(): Promise<{
         id: string;
+        username: string;
         name: string;
         role: import(".prisma/client").$Enums.UserRole;
         siteId: string;
         workerId: string;
-        username: string;
         createdAt: Date;
     }[]>;
     assignUserSite(id: string, body: {
@@ -79,8 +83,8 @@ export declare class ApiController {
         id: string;
         name: string;
         role: string;
-        dailyRate: number;
         siteId: string;
+        dailyRate: number;
         advancePaid: number;
         balanceDue: number;
         statusToday: string;
@@ -113,8 +117,8 @@ export declare class ApiController {
     getTransactions(user: JwtPayload): Promise<{
         id: string;
         siteId: string;
-        date: string;
         workerId: string;
+        date: string;
         workerName: string;
         amount: number;
         type: string;
@@ -123,10 +127,10 @@ export declare class ApiController {
     getAttendanceRecords(user: JwtPayload): Promise<{
         id: string;
         siteId: string;
+        workerId: string;
         overtimeHours: number;
         status: string;
         date: string;
-        workerId: string;
         wageEarned: number;
     }[]>;
     getRentals(user: JwtPayload): Promise<{
@@ -142,9 +146,9 @@ export declare class ApiController {
     }[]>;
     getBookings(user: JwtPayload): Promise<{
         id: string;
-        dailyRate: number;
         siteId: string;
         workerId: string;
+        dailyRate: number;
         workerName: string;
         siteName: string;
         bookingDate: string;
@@ -161,8 +165,8 @@ export declare class ApiController {
         id: string;
         name: string;
         role: string;
-        dailyRate: number;
         siteId: string;
+        dailyRate: number;
         advancePaid: number;
         balanceDue: number;
         statusToday: string;
@@ -180,8 +184,8 @@ export declare class ApiController {
         id: string;
         name: string;
         role: string;
-        dailyRate: number;
         siteId: string;
+        dailyRate: number;
         advancePaid: number;
         balanceDue: number;
         statusToday: string;
@@ -198,8 +202,8 @@ export declare class ApiController {
     }): Promise<{
         id: string;
         siteId: string;
-        date: string;
         workerId: string;
+        date: string;
         workerName: string;
         amount: number;
         type: string;
@@ -270,9 +274,9 @@ export declare class ApiController {
         remarks: string;
     }): Promise<{
         id: string;
-        dailyRate: number;
         siteId: string;
         workerId: string;
+        dailyRate: number;
         workerName: string;
         siteName: string;
         bookingDate: string;

@@ -4,6 +4,9 @@
   "description": "NestJS Backend for Thekedari Construction Management App",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
