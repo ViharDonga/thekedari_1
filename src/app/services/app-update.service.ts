@@ -20,7 +20,7 @@ export class AppUpdateService {
   public updateAvailable = signal(false);
   public latestVersion = signal('');
   public latestVersionCode = signal(0);
-  public apkDownloadUrl = signal(`${environment.webUrl}/download`);
+  public apkDownloadUrl = signal(`${environment.apiUrl}/download/apk`);
   public releaseNotes = signal('');
 
   async checkForUpdate(): Promise<void> {
@@ -41,7 +41,7 @@ export class AppUpdateService {
         this.updateAvailable.set(true);
         this.latestVersion.set(remote.version);
         this.latestVersionCode.set(remote.versionCode);
-        this.apkDownloadUrl.set(remote.apkUrl || `${environment.webUrl}/download`);
+        this.apkDownloadUrl.set(remote.apkUrl || `${environment.apiUrl}/download/apk`);
         this.releaseNotes.set(remote.releaseNotes || '');
       },
       error: () => {

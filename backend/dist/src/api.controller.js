@@ -86,10 +86,10 @@ let ApiController = class ApiController {
         return this.apiService.updateWorker(id, body, user);
     }
     updateWorkerAttendance(user, body) {
-        return this.apiService.updateWorkerAttendance(body.workerId, body.status, body.overtimeHours, body.date, user, body.overtimeAmount);
+        return this.apiService.updateWorkerAttendance(body.workerId, body.status, body.overtimeHours, body.date, user, body.overtimeAmount, body.customWageEarned);
     }
     payWorker(user, body) {
-        return this.apiService.payWorker(body.workerId, body.amount, body.paymentMode, body.type, user);
+        return this.apiService.payWorker(body.workerId, body.amount, body.paymentMode, body.type, user, body.date);
     }
     deleteAdvanceTransaction(user, id) {
         return this.apiService.deleteAdvanceTransaction(id, user);

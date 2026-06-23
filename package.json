@@ -7,9 +7,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build && node scripts/post-build-spa.js",
-    "build:web": "node scripts/generate-env.js && ng build && node scripts/post-build-spa.js",
+    "build:web": "node scripts/generate-env.js && node scripts/generate-version.js && node scripts/copy-apk-for-web.js && ng build && node scripts/post-build-spa.js",
     "version:bump": "node scripts/bump-version.js",
-    "build:apk": "node scripts/generate-env.js && node scripts/sync-capacitor-config.js && ng build && npx cap sync android && cd android && gradlew assembleDebug && cd .. && copy /y android\\app\\build\\outputs\\apk\\debug\\app-debug.apk src\\assets\\thekedari.apk",
+    "build:apk": "node scripts/generate-env.js && node scripts/sync-capacitor-config.js && ng build && npx cap sync android && cd android && gradlew assembleDebug && cd .. && if not exist backend\\apk mkdir backend\\apk && copy /y android\\app\\build\\outputs\\apk\\debug\\app-debug.apk backend\\apk\\thekedari.apk && copy /y backend\\apk\\thekedari.apk src\\assets\\thekedari.apk && node scripts/generate-version.js",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"

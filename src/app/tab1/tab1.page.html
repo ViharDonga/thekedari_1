@@ -1,51 +1,55 @@
 <ion-header [translucent]="true">
   <ion-toolbar class="glass-panel">
-    <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 16px;">
-      <div class="app-logo-area">
-        <h1 style="margin: 0; font-size: 22px; font-weight: 800; display: flex; align-items: center;">
-          <ion-icon name="business" color="primary" style="margin-right: 8px; font-size: 24px;"></ion-icon>
-          <span class="text-gradient">{{ langService.t('app_title') }}</span>
+    <div class="home-header" style="padding: 8px 12px 6px 16px;">
+      <!-- Row 1: brand + settings (always visible) -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; display: flex; align-items: center; min-width: 0;">
+          <ion-icon name="business" color="primary" style="margin-right: 8px; font-size: 26px; flex-shrink: 0;"></ion-icon>
+          <span class="text-gradient" style="white-space: nowrap;">{{ langService.t('app_title') }}</span>
         </h1>
-        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium); font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">{{ langService.t('sub_title') }}</p>
+        <ion-button
+          (click)="showSettingsModal.set(true)"
+          fill="clear"
+          color="primary"
+          style="--padding-start: 6px; --padding-end: 6px; margin: 0; flex-shrink: 0;"
+          aria-label="Settings"
+        >
+          <ion-icon name="settings-outline" style="font-size: 24px;"></ion-icon>
+        </ion-button>
       </div>
-      
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <div class="site-selector-wrapper" style="display: flex; align-items: center; gap: 4px;">
-          <ion-select 
-            [value]="dataService.activeSiteId()" 
-            interface="popover" 
-            (ionChange)="onSiteChange($event)"
-            toggleIcon="chevron-down"
-            style="min-width: 140px; font-size: 13px;"
-          >
-            <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
-              {{ s.name }}
-            </ion-select-option>
-          </ion-select>
 
-          <ion-button
-            *ngIf="authService.isAdmin()"
-            (click)="openAssignUserModal()"
-            fill="clear"
-            color="secondary"
-            style="--padding-start: 4px; --padding-end: 4px; margin: 0;"
-          >
-            <ion-icon name="people" style="font-size: 22px;"></ion-icon>
-          </ion-button>
+      <!-- Row 2: site selector + admin actions -->
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <ion-select
+          [value]="dataService.activeSiteId()"
+          interface="popover"
+          (ionChange)="onSiteChange($event)"
+          toggleIcon="chevron-down"
+          style="flex: 1; min-width: 0; font-size: 13px; max-width: 100%;"
+        >
+          <ion-select-option *ngFor="let s of dataService.sites()" [value]="s.id">
+            {{ s.name }}
+          </ion-select-option>
+        </ion-select>
 
-          <ion-button
-            *ngIf="authService.isAdmin()"
-            (click)="openAddSiteModal()"
-            fill="clear"
-            color="primary"
-            style="--padding-start: 4px; --padding-end: 4px; margin: 0;"
-          >
-            <ion-icon name="add" style="font-size: 22px;"></ion-icon>
-          </ion-button>
-        </div>
+        <ion-button
+          *ngIf="authService.isAdmin()"
+          (click)="openAssignUserModal()"
+          fill="clear"
+          color="secondary"
+          style="--padding-start: 4px; --padding-end: 4px; margin: 0; flex-shrink: 0;"
+        >
+          <ion-icon name="people" style="font-size: 22px;"></ion-icon>
+        </ion-button>
 
-        <ion-button (click)="showSettingsModal.set(true)" fill="clear" color="primary" style="--padding-start: 4px; --padding-end: 4px; margin: 0;">
-          <ion-icon name="settings-outline" style="font-size: 22px;"></ion-icon>
+        <ion-button
+          *ngIf="authService.isAdmin()"
+          (click)="openAddSiteModal()"
+          fill="clear"
+          color="primary"
+          style="--padding-start: 4px; --padding-end: 4px; margin: 0; flex-shrink: 0;"
+        >
+          <ion-icon name="add" style="font-size: 22px;"></ion-icon>
         </ion-button>
       </div>
     </div>

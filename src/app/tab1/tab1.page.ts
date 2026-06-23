@@ -77,7 +77,7 @@ export class Tab1Page implements OnInit {
   public payFormWorkerId = '';
   public payFormAmount = 0;
   public payFormMode: 'Cash' | 'UPI' | 'Bank Transfer' = 'UPI';
-  public apkDownloadUrl = `${environment.webUrl}/download`;
+  public apkDownloadUrl = `${environment.apiUrl}/download/apk`;
 
   constructor() {
     addIcons({ 

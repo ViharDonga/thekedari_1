@@ -212,7 +212,7 @@ let ApiService = class ApiService {
         }
         return updated;
     }
-    async updateWorkerAttendance(workerId, status, overtimeHours, date, user, overtimeAmount) {
+    async updateWorkerAttendance(workerId, status, overtimeHours, date, user, overtimeAmount, customWageEarned) {
         const targetDate = date || this.todayString;
         const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
         if (!worker)
@@ -226,7 +226,9 @@ let ApiService = class ApiService {
         const oldWage = existingRecord
             ? existingRecord.wageEarned
             : this.calculateWage(worker.dailyRate, previousStatus, previousOvertime);
-        const newWage = this.calculateWage(worker.dailyRate, status, overtimeHours, overtimeAmount);
+        const newWage = customWageEarned !== undefined && customWageEarned >= 0
+            ? customWageEarned
+            : this.calculateWage(worker.dailyRate, status, overtimeHours, overtimeAmount);
         const wageDiff = newWage - oldWage;
         const isToday = targetDate === this.todayString;
         const updateData = {
@@ -274,11 +276,12 @@ let ApiService = class ApiService {
         await this.recalculateSiteExpenses(worker.siteId);
         return updatedWorker;
     }
-    async payWorker(workerId, amount, paymentMode, type, user) {
+    async payWorker(workerId, amount, paymentMode, type, user, date) {
         const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
         if (!worker)
             throw new Error('Worker not found');
         this.assertSiteAccess(user, worker.siteId);
+        const paymentDate = date || this.todayString;
         const transaction = await this.prisma.transaction.create({
             data: {
                 workerId,
@@ -286,7 +289,7 @@ let ApiService = class ApiService {
                 siteId: worker.siteId,
                 amount,
                 type,
-                date: this.todayString,
+                date: paymentDate,
                 paymentMode,
             },
         });

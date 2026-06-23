@@ -1,0 +1,3 @@
+# Commit thekedari.apk after running: npm run build:apk
+!.gitkeep
+!thekedari.apk

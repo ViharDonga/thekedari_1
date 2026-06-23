@@ -169,7 +169,7 @@ export declare class ApiService {
         totalExpenses: number;
         supervisorName: string;
     }>;
-    updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date: string | undefined, user: JwtPayload, overtimeAmount?: number): Promise<{
+    updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date: string | undefined, user: JwtPayload, overtimeAmount?: number, customWageEarned?: number): Promise<{
         id: string;
         name: string;
         role: string;
@@ -183,7 +183,7 @@ export declare class ApiService {
         avatar: string;
         employmentType: string;
     }>;
-    payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment', user: JwtPayload): Promise<{
+    payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment', user: JwtPayload, date?: string): Promise<{
         id: string;
         siteId: string;
         workerId: string;

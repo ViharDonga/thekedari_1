@@ -7,11 +7,18 @@ const parts = version.split('.').map((n) => parseInt(n, 10) || 0);
 const versionCode = parts[0] * 10000 + parts[1] * 100 + parts[2];
 
 const webUrl = (process.env.WEB_URL || process.env.FRONTEND_URL || 'https://thekedari-web.onrender.com').replace(/\/$/, '');
+let apiBase =
+  process.env.API_URL ||
+  process.env.RENDER_EXTERNAL_URL ||
+  'https://thekedari-api.onrender.com';
+apiBase = apiBase.replace(/\/$/, '');
+const apiUrl = apiBase.endsWith('/api') ? apiBase : `${apiBase}/api`;
+const apkUrl = `${apiUrl}/download/apk`;
 
 const versionJson = {
   version,
   versionCode,
-  apkUrl: `${webUrl}/download`,
+  apkUrl,
   releaseNotes: 'Latest features and fixes from Thekedari',
 };
 

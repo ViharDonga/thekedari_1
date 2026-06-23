@@ -196,7 +196,7 @@ export class SettingsModalComponent {
   public langService = inject(LanguageService);
   public authService = inject(AuthService);
   public isNativeApp = Capacitor.isNativePlatform();
-  public apkDownloadUrl = `${environment.webUrl}/download`;
+  public apkDownloadUrl = `${environment.apiUrl}/download/apk`;
   public appVersion = environment.appVersion;
 
   @Output() dismiss = new EventEmitter<void>();

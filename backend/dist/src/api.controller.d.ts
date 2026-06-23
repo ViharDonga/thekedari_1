@@ -217,6 +217,7 @@ export declare class ApiController {
         status: string;
         overtimeHours: number;
         overtimeAmount?: number;
+        customWageEarned?: number;
         date?: string;
     }): Promise<{
         id: string;
@@ -237,6 +238,7 @@ export declare class ApiController {
         amount: number;
         paymentMode: string;
         type: 'Wage Payment' | 'Advance Payment';
+        date?: string;
     }): Promise<{
         id: string;
         siteId: string;
