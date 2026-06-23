@@ -1,0 +1,8 @@
+Render Static Site — required rewrite (if not using render.yaml Blueprint):
+
+Dashboard → thekedari-web → Redirects/Rewrites → Add Rule:
+  Source:      /*
+  Destination: /index.html
+  Action:      Rewrite
+
+Without this rule, refreshing URLs like /tabs/tab1 shows "Not Found".

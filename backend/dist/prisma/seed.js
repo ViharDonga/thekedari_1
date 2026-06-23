@@ -4,17 +4,13 @@ const client_1 = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const prisma = new client_1.PrismaClient();
 async function main() {
-    await prisma.labourBooking.deleteMany();
-    await prisma.transaction.deleteMany();
-    await prisma.rentalMaterial.deleteMany();
-    await prisma.attendanceRecord.deleteMany();
-    await prisma.materialDelivery.deleteMany();
-    await prisma.materialInventory.deleteMany();
-    await prisma.worker.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.constructionSite.deleteMany();
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const existing = await prisma.user.findUnique({ where: { username: adminUsername } });
+    if (existing) {
+        console.log(`Seed skipped: user "${adminUsername}" already exists. No data was deleted.`);
+        return;
+    }
     const adminHash = await bcrypt.hash(adminPassword, 10);
     await prisma.user.create({
         data: {
@@ -24,9 +20,8 @@ async function main() {
             role: 'ADMIN',
         },
     });
-    console.log('Live seed complete: admin user only.');
-    console.log(`Login: ${adminUsername} / (password from ADMIN_PASSWORD env or default admin123)`);
-    console.log('Create sites in app, then assign supervisor/labour users to sites.');
+    console.log(`Admin user created: ${adminUsername}`);
+    console.log('Existing sites, workers, and transactions were not changed.');
 }
 main()
     .catch((e) => {

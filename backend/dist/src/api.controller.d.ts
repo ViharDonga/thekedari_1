@@ -79,6 +79,24 @@ export declare class ApiController {
         totalExpenses: number;
         supervisorName: string;
     }>;
+    updateSite(user: JwtPayload, id: string, body: {
+        name?: string;
+        location?: string;
+        budget?: number;
+        supervisorName?: string;
+        otherExpenses?: number;
+    }): Promise<{
+        id: string;
+        name: string;
+        location: string;
+        budget: number;
+        spentWages: number;
+        spentMaterials: number;
+        spentRentals: number;
+        otherExpenses: number;
+        totalExpenses: number;
+        supervisorName: string;
+    }>;
     getWorkers(user: JwtPayload): Promise<{
         id: string;
         name: string;
@@ -175,10 +193,30 @@ export declare class ApiController {
         avatar: string;
         employmentType: string;
     }>;
+    updateWorker(user: JwtPayload, id: string, body: {
+        dailyRate?: number;
+        name?: string;
+        role?: string;
+        phone?: string;
+    }): Promise<{
+        id: string;
+        name: string;
+        role: string;
+        siteId: string;
+        dailyRate: number;
+        advancePaid: number;
+        balanceDue: number;
+        statusToday: string;
+        overtimeHours: number;
+        phone: string;
+        avatar: string;
+        employmentType: string;
+    }>;
     updateWorkerAttendance(user: JwtPayload, body: {
         workerId: string;
         status: string;
         overtimeHours: number;
+        overtimeAmount?: number;
         date?: string;
     }): Promise<{
         id: string;

@@ -132,7 +132,44 @@ export declare class ApiService {
         avatar: string;
         employmentType: string;
     }>;
-    updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date: string | undefined, user: JwtPayload): Promise<{
+    updateWorker(workerId: string, data: {
+        dailyRate?: number;
+        name?: string;
+        role?: string;
+        phone?: string;
+    }, user: JwtPayload): Promise<{
+        id: string;
+        name: string;
+        role: string;
+        siteId: string;
+        dailyRate: number;
+        advancePaid: number;
+        balanceDue: number;
+        statusToday: string;
+        overtimeHours: number;
+        phone: string;
+        avatar: string;
+        employmentType: string;
+    }>;
+    updateSite(siteId: string, data: {
+        name?: string;
+        location?: string;
+        budget?: number;
+        supervisorName?: string;
+        otherExpenses?: number;
+    }, user: JwtPayload): Promise<{
+        id: string;
+        name: string;
+        location: string;
+        budget: number;
+        spentWages: number;
+        spentMaterials: number;
+        spentRentals: number;
+        otherExpenses: number;
+        totalExpenses: number;
+        supervisorName: string;
+    }>;
+    updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date: string | undefined, user: JwtPayload, overtimeAmount?: number): Promise<{
         id: string;
         name: string;
         role: string;

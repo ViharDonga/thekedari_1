@@ -33,12 +33,20 @@ export class ApiService {
 
   // --- GET ALL DATA ---
   async getSites(user: JwtPayload) {
-    const sites = await this.prisma.constructionSite.findMany({
+    let sites = await this.prisma.constructionSite.findMany({
       orderBy: { id: 'asc' },
     });
-    if (user.role === 'ADMIN') return sites;
-    if (user.siteId) return sites.filter((s) => s.id === user.siteId);
-    return [];
+    if (user.role !== 'ADMIN') {
+      if (!user.siteId) return [];
+      sites = sites.filter((s) => s.id === user.siteId);
+    }
+    for (const site of sites) {
+      await this.recalculateSiteExpenses(site.id);
+    }
+    return this.prisma.constructionSite.findMany({
+      where: user.role === 'ADMIN' ? {} : { id: user.siteId! },
+      orderBy: { id: 'asc' },
+    });
   }
 
   async addSite(
@@ -133,7 +141,6 @@ export class ApiService {
     user: JwtPayload,
   ) {
     this.assertSiteAccess(user, data.siteId);
-    const avatar = `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000)}?w=150`;
     const statusToday = data.employmentType === 'Permanent' ? 'Not Marked' : 'Not Called';
 
     const worker = await this.prisma.worker.create({
@@ -144,7 +151,7 @@ export class ApiService {
         siteId: data.siteId,
         phone: data.phone,
         employmentType: data.employmentType,
-        avatar,
+        avatar: '',
         statusToday,
         balanceDue: 0,
         advancePaid: 0,
@@ -154,8 +161,100 @@ export class ApiService {
     return worker;
   }
 
+  async updateWorker(
+    workerId: string,
+    data: { dailyRate?: number; name?: string; role?: string; phone?: string },
+    user: JwtPayload,
+  ) {
+    const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
+    if (!worker) throw new Error('Worker not found');
+    this.assertSiteAccess(user, worker.siteId);
+
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+
+    if (data.dailyRate !== undefined && data.dailyRate > 0 && data.dailyRate !== worker.dailyRate) {
+      updateData.dailyRate = data.dailyRate;
+
+      const records = await this.prisma.attendanceRecord.findMany({ where: { workerId } });
+      let totalEarned = 0;
+      for (const record of records) {
+        let newWage: number;
+        if (record.status === 'Overtime') {
+          const otExtra = Math.max(0, record.wageEarned - worker.dailyRate);
+          newWage = data.dailyRate + otExtra;
+        } else {
+          newWage = this.calculateWage(data.dailyRate, record.status, record.overtimeHours);
+        }
+        await this.prisma.attendanceRecord.update({
+          where: { id: record.id },
+          data: { wageEarned: newWage },
+        });
+        totalEarned += newWage;
+      }
+
+      const wagePaid = await this.prisma.transaction.aggregate({
+        where: { workerId, type: 'Wage Payment' },
+        _sum: { amount: true },
+      });
+      updateData.balanceDue = Math.max(0, totalEarned - (wagePaid._sum.amount || 0));
+
+      await this.recalculateSiteExpenses(worker.siteId);
+    }
+
+    return this.prisma.worker.update({
+      where: { id: workerId },
+      data: updateData,
+    });
+  }
+
+  async updateSite(
+    siteId: string,
+    data: {
+      name?: string;
+      location?: string;
+      budget?: number;
+      supervisorName?: string;
+      otherExpenses?: number;
+    },
+    user: JwtPayload,
+  ) {
+    this.assertSiteAccess(user, siteId);
+    const site = await this.prisma.constructionSite.findUnique({ where: { id: siteId } });
+    if (!site) throw new Error('Site not found');
+
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.location !== undefined) updateData.location = data.location;
+    if (data.budget !== undefined) updateData.budget = data.budget;
+    if (data.supervisorName !== undefined) updateData.supervisorName = data.supervisorName;
+    if (data.otherExpenses !== undefined) updateData.otherExpenses = data.otherExpenses;
+
+    const updated = await this.prisma.constructionSite.update({
+      where: { id: siteId },
+      data: updateData,
+    });
+
+    if (data.otherExpenses !== undefined) {
+      await this.recalculateSiteExpenses(siteId);
+      return this.prisma.constructionSite.findUnique({ where: { id: siteId } });
+    }
+
+    return updated;
+  }
+
   // Update Worker Attendance
-  async updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date: string | undefined, user: JwtPayload) {
+  async updateWorkerAttendance(
+    workerId: string,
+    status: string,
+    overtimeHours: number,
+    date: string | undefined,
+    user: JwtPayload,
+    overtimeAmount?: number,
+    customWageEarned?: number,
+  ) {
     const targetDate = date || this.todayString;
     const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
     if (!worker) throw new Error('Worker not found');
@@ -169,9 +268,13 @@ export class ApiService {
     const previousStatus = existingRecord ? existingRecord.status : (worker.employmentType === 'Permanent' ? 'Not Marked' : 'Not Called');
     const previousOvertime = existingRecord ? existingRecord.overtimeHours : 0;
 
-    // Calculate wages
-    const oldWage = this.calculateWage(worker.dailyRate, previousStatus, previousOvertime);
-    const newWage = this.calculateWage(worker.dailyRate, status, overtimeHours);
+    const oldWage = existingRecord
+      ? existingRecord.wageEarned
+      : this.calculateWage(worker.dailyRate, previousStatus, previousOvertime);
+    const newWage =
+      customWageEarned !== undefined && customWageEarned >= 0
+        ? customWageEarned
+        : this.calculateWage(worker.dailyRate, status, overtimeHours, overtimeAmount);
     const wageDiff = newWage - oldWage;
 
     // Update Worker balance, and only update statusToday/overtimeHours if it is todayString
@@ -226,10 +329,19 @@ export class ApiService {
   }
 
   // Pay Worker
-  async payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment', user: JwtPayload) {
+  async payWorker(
+    workerId: string,
+    amount: number,
+    paymentMode: string,
+    type: 'Wage Payment' | 'Advance Payment',
+    user: JwtPayload,
+    date?: string,
+  ) {
     const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
     if (!worker) throw new Error('Worker not found');
     this.assertSiteAccess(user, worker.siteId);
+
+    const paymentDate = date || this.todayString;
 
     // Create Transaction
     const transaction = await this.prisma.transaction.create({
@@ -239,7 +351,7 @@ export class ApiService {
         siteId: worker.siteId,
         amount,
         type,
-        date: this.todayString,
+        date: paymentDate,
         paymentMode,
       },
     });
@@ -446,10 +558,21 @@ export class ApiService {
 
   // --- PRIVATE HELPERS ---
 
-  private calculateWage(dailyRate: number, status: string, overtimeHours: number): number {
+  private calculateWage(
+    dailyRate: number,
+    status: string,
+    overtimeHours: number,
+    overtimeAmount?: number,
+  ): number {
     if (status === 'Present') return dailyRate;
     if (status === 'Half Day') return dailyRate * 0.5;
-    if (status === 'Overtime') return dailyRate + overtimeHours * (dailyRate / 8);
+    if (status === 'Overtime') {
+      const extra =
+        overtimeAmount !== undefined && overtimeAmount >= 0
+          ? overtimeAmount
+          : overtimeHours * (dailyRate / 8);
+      return dailyRate + extra;
+    }
     return 0; // Absent, Not Marked, Not Called
   }
 
@@ -470,12 +593,19 @@ export class ApiService {
     const site = await this.prisma.constructionSite.findUnique({ where: { id: siteId } });
     if (!site) return;
 
-    // 1. Recalculate Wages spent
+    // 1. Recalculate Wages spent (attendance earned + wage payments — avoids missing casual same-day pay)
     const attendanceRecords = await this.prisma.attendanceRecord.findMany({
       where: { siteId },
     });
-    const wageLogsTotal = attendanceRecords.reduce((sum, r) => sum + r.wageEarned, 0);
-    const spentWages = wageLogsTotal;
+    const accruedWages = attendanceRecords.reduce((sum, r) => sum + r.wageEarned, 0);
+
+    const wagePayments = await this.prisma.transaction.aggregate({
+      where: { siteId, type: 'Wage Payment' },
+      _sum: { amount: true },
+    });
+    const paidWages = wagePayments._sum.amount || 0;
+
+    const spentWages = Math.max(accruedWages, paidWages);
 
     // 2. Recalculate Materials spent
     const deliveries = await this.prisma.materialDelivery.findMany({

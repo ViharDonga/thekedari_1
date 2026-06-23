@@ -6,8 +6,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
-    "build:web": "node scripts/generate-env.js && ng build",
+    "build": "ng build && node scripts/post-build-spa.js",
+    "build:web": "node scripts/generate-env.js && ng build && node scripts/post-build-spa.js",
     "version:bump": "node scripts/bump-version.js",
     "build:apk": "node scripts/generate-env.js && node scripts/sync-capacitor-config.js && ng build && npx cap sync android && cd android && gradlew assembleDebug && cd .. && copy /y android\\app\\build\\outputs\\apk\\debug\\app-debug.apk src\\assets\\thekedari.apk",
     "watch": "ng build --watch --configuration development",

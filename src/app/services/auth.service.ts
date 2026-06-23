@@ -118,7 +118,7 @@ export class AuthService {
     this.currentUser.set(null);
     this.dataService.clearData();
     if (navigate) {
-      this.router.navigateByUrl('/login');
+      void this.router.navigateByUrl('/login', { replaceUrl: true });
     }
   }
 

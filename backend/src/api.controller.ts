@@ -92,6 +92,24 @@ export class ApiController {
     return this.apiService.addSite(body, user);
   }
 
+  @Patch('sites/:id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  updateSite(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name?: string;
+      location?: string;
+      budget?: number;
+      supervisorName?: string;
+      otherExpenses?: number;
+    },
+  ) {
+    return this.apiService.updateSite(id, body, user);
+  }
+
   @Get('workers')
   @UseGuards(AuthGuard)
   getWorkers(@CurrentUser() user: JwtPayload) {
@@ -152,6 +170,23 @@ export class ApiController {
     return this.apiService.addWorker(body, user);
   }
 
+  @Patch('workers/:id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  updateWorker(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      dailyRate?: number;
+      name?: string;
+      role?: string;
+      phone?: string;
+    },
+  ) {
+    return this.apiService.updateWorker(id, body, user);
+  }
+
   @Patch('attendance')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERVISOR')
@@ -162,10 +197,20 @@ export class ApiController {
       workerId: string;
       status: string;
       overtimeHours: number;
+      overtimeAmount?: number;
+      customWageEarned?: number;
       date?: string;
     },
   ) {
-    return this.apiService.updateWorkerAttendance(body.workerId, body.status, body.overtimeHours, body.date, user);
+    return this.apiService.updateWorkerAttendance(
+      body.workerId,
+      body.status,
+      body.overtimeHours,
+      body.date,
+      user,
+      body.overtimeAmount,
+      body.customWageEarned,
+    );
   }
 
   @Post('payments')
@@ -179,9 +224,17 @@ export class ApiController {
       amount: number;
       paymentMode: string;
       type: 'Wage Payment' | 'Advance Payment';
+      date?: string;
     },
   ) {
-    return this.apiService.payWorker(body.workerId, body.amount, body.paymentMode, body.type, user);
+    return this.apiService.payWorker(
+      body.workerId,
+      body.amount,
+      body.paymentMode,
+      body.type,
+      user,
+      body.date,
+    );
   }
 
   @Delete('transactions/:id')

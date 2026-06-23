@@ -173,12 +173,18 @@ export class DataService {
     });
 
     this.http.get<Transaction[]>(`${this.apiUrl}/transactions`).subscribe({
-      next: (transactions) => this.transactions.set(transactions),
+      next: (transactions) => {
+        this.transactions.set(transactions);
+        this.refreshAllSiteExpenses();
+      },
       error: (err) => console.error('Failed to load transactions:', err)
     });
 
     this.http.get<AttendanceRecord[]>(`${this.apiUrl}/attendance`).subscribe({
-      next: (attendance) => this.attendanceRecords.set(attendance),
+      next: (attendance) => {
+        this.attendanceRecords.set(attendance);
+        this.refreshAllSiteExpenses();
+      },
       error: (err) => console.error('Failed to load attendance:', err)
     });
 
@@ -256,9 +262,23 @@ export class DataService {
     this.activeSiteId.set(id);
   }
 
-  public updateWorkerAttendance(workerId: string, status: 'Present' | 'Absent' | 'Half Day' | 'Overtime' | 'Not Marked' | 'Not Called', overtimeHours: number = 0, date: string = this.todayString) {
+  public updateWorkerAttendance(
+    workerId: string,
+    status: 'Present' | 'Absent' | 'Half Day' | 'Overtime' | 'Not Marked' | 'Not Called',
+    overtimeHours: number = 0,
+    date: string = this.todayString,
+    overtimeAmount?: number,
+    customWageEarned?: number,
+  ) {
     if (this.isBackendOnline()) {
-      this.http.patch(`${this.apiUrl}/attendance`, { workerId, status, overtimeHours, date }).subscribe({
+      const body: Record<string, unknown> = { workerId, status, overtimeHours, date };
+      if (overtimeAmount !== undefined) {
+        body['overtimeAmount'] = overtimeAmount;
+      }
+      if (customWageEarned !== undefined) {
+        body['customWageEarned'] = customWageEarned;
+      }
+      this.http.patch(`${this.apiUrl}/attendance`, body).subscribe({
         next: () => this.loadAllData(),
         error: (err) => console.error('Failed to update attendance:', err)
       });
@@ -270,8 +290,11 @@ export class DataService {
             const oldStatus = existingRecord ? existingRecord.status : (w.employmentType === 'Permanent' ? 'Not Marked' : 'Not Called');
             const oldOvertime = existingRecord ? existingRecord.overtimeHours : 0;
 
-            const oldWage = this.calculateWage(w.dailyRate, oldStatus, oldOvertime);
-            const newWage = this.calculateWage(w.dailyRate, status, overtimeHours);
+            const oldWage = existingRecord ? existingRecord.wageEarned : this.calculateWage(w.dailyRate, oldStatus, oldOvertime);
+            const newWage =
+              customWageEarned !== undefined && customWageEarned >= 0
+                ? customWageEarned
+                : this.calculateWage(w.dailyRate, status, overtimeHours, overtimeAmount);
             const wageDiff = newWage - oldWage;
 
             const isToday = date === this.todayString;
@@ -289,7 +312,10 @@ export class DataService {
       this.attendanceRecords.update(prevRecords => {
         const existingRecordIndex = prevRecords.findIndex(r => r.workerId === workerId && r.date === date);
         const worker = this.workers().find(w => w.id === workerId)!;
-        const wageEarned = this.calculateWage(worker.dailyRate, status, overtimeHours);
+        const wageEarned =
+          customWageEarned !== undefined && customWageEarned >= 0
+            ? customWageEarned
+            : this.calculateWage(worker.dailyRate, status, overtimeHours, overtimeAmount);
 
         if (existingRecordIndex > -1) {
           if (status === 'Not Marked' || status === 'Not Called') {
@@ -322,9 +348,15 @@ export class DataService {
     }
   }
 
-  public payWorker(workerId: string, amount: number, paymentMode: 'Cash' | 'UPI' | 'Bank Transfer', type: 'Wage Payment' | 'Advance Payment' = 'Wage Payment') {
+  public payWorker(
+    workerId: string,
+    amount: number,
+    paymentMode: 'Cash' | 'UPI' | 'Bank Transfer',
+    type: 'Wage Payment' | 'Advance Payment' = 'Wage Payment',
+    date: string = this.todayString,
+  ) {
     if (this.isBackendOnline()) {
-      this.http.post(`${this.apiUrl}/payments`, { workerId, amount, paymentMode, type }).subscribe({
+      this.http.post(`${this.apiUrl}/payments`, { workerId, amount, paymentMode, type, date }).subscribe({
         next: () => this.loadAllData(),
         error: (err) => console.error('Failed to pay worker:', err)
       });
@@ -337,7 +369,7 @@ export class DataService {
         siteId: worker.siteId,
         amount,
         type,
-        date: this.todayString,
+        date: date,
         paymentMode
       };
       
@@ -590,26 +622,98 @@ export class DataService {
         statusToday: employmentType === 'Permanent' ? 'Not Marked' : 'Not Called',
         overtimeHours: 0,
         phone,
-        avatar: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random()*1000000)}?w=150`,
+        avatar: '',
         employmentType
       };
       this.workers.update(prev => [...prev, newWorker]);
     }
   }
 
-  private calculateWage(dailyRate: number, status: string, overtimeHours: number): number {
+  public updateWorker(
+    workerId: string,
+    data: { dailyRate?: number; name?: string; role?: string; phone?: string },
+  ) {
+    if (this.isBackendOnline()) {
+      this.http.patch<Worker>(`${this.apiUrl}/workers/${workerId}`, data).subscribe({
+        next: () => this.loadAllData(),
+        error: (err) => console.error('Failed to update worker:', err),
+      });
+    } else {
+      this.workers.update((prev) =>
+        prev.map((w) => (w.id === workerId ? { ...w, ...data } as Worker : w)),
+      );
+      if (data.dailyRate !== undefined) {
+        const worker = this.workers().find((w) => w.id === workerId);
+        if (worker) {
+          this.recalculateSiteExpenses(worker.siteId);
+        }
+      }
+    }
+  }
+
+  public updateSite(
+    siteId: string,
+    data: {
+      name?: string;
+      location?: string;
+      budget?: number;
+      supervisorName?: string;
+      otherExpenses?: number;
+    },
+  ) {
+    if (this.isBackendOnline()) {
+      this.http.patch<ConstructionSite>(`${this.apiUrl}/sites/${siteId}`, data).subscribe({
+        next: () => this.loadAllData(),
+        error: (err) => console.error('Failed to update site:', err),
+      });
+    } else {
+      this.sites.update((prev) =>
+        prev.map((s) => {
+          if (s.id !== siteId) return s;
+          const updated = { ...s, ...data };
+          updated.totalExpenses =
+            updated.spentWages + updated.spentMaterials + updated.spentRentals + updated.otherExpenses;
+          return updated;
+        }),
+      );
+    }
+  }
+
+  private calculateWage(
+    dailyRate: number,
+    status: string,
+    overtimeHours: number,
+    overtimeAmount?: number,
+  ): number {
     if (status === 'Present') return dailyRate;
     if (status === 'Half Day') return dailyRate * 0.5;
-    if (status === 'Overtime') return dailyRate + (overtimeHours * (dailyRate / 8));
+    if (status === 'Overtime') {
+      const extra =
+        overtimeAmount !== undefined && overtimeAmount >= 0
+          ? overtimeAmount
+          : overtimeHours * (dailyRate / 8);
+      return dailyRate + extra;
+    }
     return 0; // Absent or Not Marked
   }
 
+  private refreshAllSiteExpenses() {
+    if (!this.isBackendOnline() || this.sites().length === 0) return;
+    for (const site of this.sites()) {
+      this.recalculateSiteExpenses(site.id);
+    }
+  }
+
   private recalculateSiteExpenses(siteId: string) {
-    const wageLogsTotal = this.attendanceRecords()
-      .filter(r => r.siteId === siteId)
+    const accruedWages = this.attendanceRecords()
+      .filter((r) => r.siteId === siteId)
       .reduce((sum, r) => sum + r.wageEarned, 0);
 
-    const computedWagesExpense = wageLogsTotal;
+    const paidWages = this.transactions()
+      .filter((t) => t.siteId === siteId && t.type === 'Wage Payment')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const computedWagesExpense = Math.max(accruedWages, paidWages);
 
     const deliveryTotal = this.deliveries()
       .filter(d => d.siteId === siteId && d.status === 'Delivered')

@@ -1,5 +1,6 @@
 import { Component, EnvironmentInjector, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel } from '@ionic/angular/standalone';
 import { Capacitor } from '@capacitor/core';
 import { addIcons } from 'ionicons';
@@ -12,7 +13,7 @@ import { AuthService } from '../services/auth.service';
   selector: 'app-tabs',
   templateUrl: 'tabs.page.html',
   styleUrls: ['tabs.page.scss'],
-  imports: [CommonModule, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
+  imports: [CommonModule, RouterLink, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
 })
 export class TabsPage {
   public environmentInjector = inject(EnvironmentInjector);

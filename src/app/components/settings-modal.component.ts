@@ -218,7 +218,7 @@ export class SettingsModalComponent {
   }
 
   logout() {
-    this.authService.logout();
     this.close();
+    this.authService.logout();
   }
 }

@@ -100,9 +100,7 @@
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <!-- Left: Profile and Details -->
             <div style="display: flex; align-items: center; cursor: pointer;" (click)="viewWorkerDetails(worker)">
-              <ion-avatar style="width: 44px; height: 44px; margin-right: 12px; border: 1px solid rgba(255, 159, 10, 0.3);">
-                <img [src]="worker.avatar" alt="{{ worker.name }}" />
-              </ion-avatar>
+              <app-worker-avatar [name]="worker.name" [avatarUrl]="worker.avatar" [size]="44" style="margin-right: 12px;"></app-worker-avatar>
               <div>
                 <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--app-text-color);">
                   {{ worker.name }}
@@ -144,7 +142,7 @@
           <!-- Case 2: Permanent Worker OR called Casual Worker -->
           <div *ngIf="worker.employmentType === 'Permanent' || getWorkerStatusForSelectedDate(worker) !== 'Not Called'" style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-light); margin-top: 12px; padding-top: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 11px; font-weight: 600; color: var(--ion-color-medium);">{{ langService.t('today_mark') }}:</span>
+              <span style="font-size: 11px; font-weight: 600; color: var(--ion-color-medium);">{{ attendanceMarkLabel() }}:</span>
               <!-- Release button for Called Casual Workers -->
               <ion-button *ngIf="worker.employmentType === 'Casual'" color="danger" fill="clear" size="small" style="--padding-start: 0; --padding-end: 0; font-size: 10px; font-weight: 700; margin: 0; height: auto;" (click)="releaseWorker(worker)">
                 ({{ langService.t('release_btn') }})
@@ -177,9 +175,12 @@
                 (click)="setAttendance(worker, 'Overtime')"
                 [style.background]="getWorkerStatusForSelectedDate(worker) === 'Overtime' ? 'var(--ion-color-primary)' : 'rgba(255,255,255,0.04)'"
                 [style.color]="getWorkerStatusForSelectedDate(worker) === 'Overtime' ? '#000000' : 'var(--ion-color-medium)'"
-                style="border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+                style="border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; min-width: 36px;"
               >
-                OT {{ getWorkerStatusForSelectedDate(worker) === 'Overtime' ? '(+' + getWorkerOvertimeHoursForSelectedDate(worker) + 'h)' : '' }}
+                <span style="display: block; line-height: 1.1;">OT</span>
+                <span *ngIf="getWorkerStatusForSelectedDate(worker) === 'Overtime'" style="display: block; font-size: 9px; font-weight: 800; margin-top: 1px;">
+                  +{{ getWorkerOvertimeHoursForSelectedDate(worker) }}h
+                </span>
               </button>
 
               <!-- Absent -->
@@ -192,6 +193,20 @@
                 A
               </button>
             </div>
+          </div>
+
+          <!-- OT paid amount row -->
+          <div *ngIf="getWorkerStatusForSelectedDate(worker) === 'Overtime'" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 6px 10px; background: rgba(100,210,255,0.08); border-radius: 8px; border: 1px solid rgba(100,210,255,0.15);">
+            <span style="font-size: 11px; font-weight: 600; color: #64d2ff;">{{ langService.t('ot_paid') }}</span>
+            <span style="font-size: 12px; font-weight: 800; color: #64d2ff; font-family: monospace;">
+              +₹{{ getWorkerOvertimeAmountForSelectedDate(worker) }}
+              <span style="font-size: 10px; font-weight: 600; color: var(--ion-color-medium); margin-left: 6px;">
+                ({{ langService.t('ot_total_day') }}: ₹{{ getWorkerWageForDate(worker, selectedDate()) }})
+              </span>
+            </span>
+            <ion-button fill="clear" size="small" color="primary" style="margin: 0; --padding-start: 4px; --padding-end: 4px; height: 24px; font-size: 10px;" (click)="openOtModal(worker, selectedDate())">
+              Edit
+            </ion-button>
           </div>
         </div>
       </ion-list>
@@ -310,19 +325,34 @@
 
       <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
         <div class="glass-panel" style="padding: 20px; margin-top: 10px;" *ngIf="otWorker()">
-          <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: var(--app-text-color);">OT: {{ otWorker()!.name }}</h3>
-          <p style="margin: 0 0 20px 0; font-size: 13px; color: var(--ion-color-medium);">
-            {{ langService.t('ot_desc') }} (₹{{ (otWorker()!.dailyRate / 8) | number:'1.0-0' }} per hour).
+          <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: var(--app-text-color);">OT: {{ otWorker()!.name }}</h3>
+          <p style="margin: 0 0 16px 0; font-size: 12px; color: var(--ion-color-primary); font-weight: 600;">
+            {{ otEditDate | date:'dd MMM yyyy' }} • Daily: ₹{{ otWorker()!.dailyRate }}
+          </p>
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--ion-color-medium);">
+            {{ langService.t('ot_desc') }} (₹{{ (otWorker()!.dailyRate / 8) | number:'1.0-0' }} {{ langService.t('ot_per_hour') }}).
           </p>
 
-          <div style="margin-bottom: 24px;">
+          <div style="margin-bottom: 16px;">
             <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('ot_hours') }}</label>
-            <ion-select [(ngModel)]="otHours" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
+            <ion-select [(ngModel)]="otHoursNum" (ionChange)="onOtHoursChange()" interface="popover" style="width: 100%; margin-top: 6px; font-weight: 600;">
               <ion-select-option [value]="1">1 Hour</ion-select-option>
               <ion-select-option [value]="2">2 Hours (Standard)</ion-select-option>
               <ion-select-option [value]="3">3 Hours</ion-select-option>
-              <ion-select-option [value]="4">4 Hours (Double Shift)</ion-select-option>
+              <ion-select-option [value]="4">4 Hours</ion-select-option>
+              <ion-select-option [value]="5">5 Hours</ion-select-option>
+              <ion-select-option [value]="6">6 Hours</ion-select-option>
+              <ion-select-option [value]="8">8 Hours (Full Shift)</ion-select-option>
             </ion-select>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-warning);">{{ langService.t('ot_amount') }}</label>
+            <ion-input type="number" [(ngModel)]="otAmountNum" min="0" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 16px; font-weight: 700;"></ion-input>
+            <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">
+              {{ langService.t('ot_total_day') }}: <strong style="color: var(--ion-color-primary);">₹{{ calcOtTotalDayPay(otWorker()!) }}</strong>
+              (₹{{ otWorker()!.dailyRate }} + ₹{{ otAmountNum || 0 }} OT)
+            </p>
           </div>
 
           <div style="display: flex; gap: 12px;">
@@ -333,6 +363,106 @@
               {{ langService.t('save_ot') }}
             </ion-button>
           </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- EDIT DAY ATTENDANCE (monthly calendar) -->
+  <ion-modal [isOpen]="showDayEditModal()" (didDismiss)="closeDayEditModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('edit_day_attendance') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeDayEditModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;" *ngIf="selectedWorker()">
+          <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--app-text-color);">
+            {{ selectedWorker()!.name }} — {{ dayEditDate | date:'dd MMM yyyy' }}
+          </p>
+          <p style="margin: 0 0 16px 0; font-size: 11px; color: var(--ion-color-medium);">
+            Daily rate: ₹{{ selectedWorker()!.dailyRate }}
+          </p>
+
+          <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: var(--ion-color-primary); text-transform: uppercase;">
+            {{ langService.t('attendance_mark') }}
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px;">
+            <ion-button
+              [color]="dayEditStatus === 'Present' ? 'success' : 'medium'"
+              [fill]="dayEditStatus === 'Present' ? 'solid' : 'outline'"
+              expand="block"
+              style="--border-radius: 10px; font-weight: 700;"
+              (click)="selectDayStatus('Present')"
+            >P</ion-button>
+            <ion-button
+              [color]="dayEditStatus === 'Half Day' ? 'warning' : 'medium'"
+              [fill]="dayEditStatus === 'Half Day' ? 'solid' : 'outline'"
+              expand="block"
+              style="--border-radius: 10px; font-weight: 700;"
+              (click)="selectDayStatus('Half Day')"
+            >HD</ion-button>
+            <ion-button
+              [color]="dayEditStatus === 'Overtime' ? 'primary' : 'medium'"
+              [fill]="dayEditStatus === 'Overtime' ? 'solid' : 'outline'"
+              expand="block"
+              style="--border-radius: 10px; font-weight: 700;"
+              (click)="selectDayStatus('Overtime')"
+            >OT</ion-button>
+            <ion-button
+              [color]="dayEditStatus === 'Absent' ? 'danger' : 'medium'"
+              [fill]="dayEditStatus === 'Absent' ? 'solid' : 'outline'"
+              expand="block"
+              style="--border-radius: 10px; font-weight: 700;"
+              (click)="selectDayStatus('Absent')"
+            >A</ion-button>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-warning);">
+              {{ langService.t('day_wage_amount') }}
+            </label>
+            <ion-input
+              type="number"
+              [(ngModel)]="dayEditWage"
+              min="0"
+              style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 16px; font-weight: 700;"
+            ></ion-input>
+            <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--ion-color-medium); line-height: 1.4;">
+              {{ langService.t('day_wage_hint') }}
+            </p>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-secondary);">
+              {{ langService.t('day_payment_amount') }}
+            </label>
+            <ion-input
+              type="number"
+              [(ngModel)]="dayEditPayment"
+              min="0"
+              style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 16px; font-weight: 700;"
+            ></ion-input>
+            <ion-select
+              [(ngModel)]="dayEditPaymentMode"
+              interface="popover"
+              style="width: 100%; margin-top: 8px; font-size: 13px;"
+            >
+              <ion-select-option value="Cash">Cash</ion-select-option>
+              <ion-select-option value="UPI">UPI</ion-select-option>
+              <ion-select-option value="Bank Transfer">Bank Transfer</ion-select-option>
+            </ion-select>
+          </div>
+
+          <ion-button color="primary" expand="block" style="--border-radius: 12px; font-weight: 700; height: 44px;" (click)="saveDayEdit()">
+            {{ langService.t('save_day_edit') }}
+          </ion-button>
         </div>
       </ion-content>
     </ng-template>
@@ -356,9 +486,13 @@
         <div *ngIf="selectedWorker()">
           <!-- Profile Card -->
           <div class="glass-panel" style="padding: 16px; display: flex; align-items: center; margin-bottom: 16px; margin-top: 10px;">
-            <ion-avatar style="width: 60px; height: 60px; margin-right: 16px; border: 2px solid var(--ion-color-primary);">
-              <img [src]="selectedWorker()!.avatar" alt="{{ selectedWorker()!.name }}" />
-            </ion-avatar>
+            <app-worker-avatar
+              [name]="selectedWorker()!.name"
+              [avatarUrl]="selectedWorker()!.avatar"
+              [size]="60"
+              border="2px solid var(--ion-color-primary)"
+              style="margin-right: 16px;"
+            ></app-worker-avatar>
             <div>
               <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--app-text-color);">{{ selectedWorker()!.name }}</h2>
               <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--ion-color-medium);">
@@ -395,25 +529,39 @@
 
           <!-- Monthly Attendance Grid -->
           <div class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
-            <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 0;">
-              {{ langService.t('monthly_attendance_grid') }}
-            </h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <ion-button fill="clear" size="small" (click)="changeAttendanceMonth(-1)" style="margin: 0; --padding-start: 4px; --padding-end: 4px;">
+                <ion-icon name="chevron-back"></ion-icon>
+              </ion-button>
+              <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0; text-align: center;">
+                {{ attendanceMonthLabel() }}
+              </h3>
+              <ion-button fill="clear" size="small" (click)="changeAttendanceMonth(1)" style="margin: 0; --padding-start: 4px; --padding-end: 4px;">
+                <ion-icon name="chevron-forward"></ion-icon>
+              </ion-button>
+            </div>
             
             <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-bottom: 12px;">
               <div *ngFor="let dayName of ['M', 'T', 'W', 'T', 'F', 'S', 'S']" style="font-size: 10px; font-weight: 700; color: var(--ion-color-medium); padding-bottom: 4px;">
                 {{ dayName }}
               </div>
                <div *ngFor="let day of getMonthDays()" 
+                    (click)="openDayEdit(day)"
                     [style.background]="getAttendanceBgColor(selectedWorker()!.id, day)"
                     [style.color]="getAttendanceTextColor(selectedWorker()!.id, day)"
-                    [style.border]="day === getCurrentDay() ? '1px solid var(--ion-color-primary)' : 'none'"
-                    style="border-radius: 8px; padding: 6px 0; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 38px; line-height: 1.1;">
+                    [style.border]="day === getCurrentDay() ? '1px solid var(--ion-color-primary)' : '1px solid transparent'"
+                    [style.cursor]="canManageWages() ? 'pointer' : 'default'"
+                    style="border-radius: 8px; padding: 4px 0; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 42px; line-height: 1.1;">
                 <span>{{ day }}</span>
                 <span style="font-size: 8px; font-weight: 800;" *ngIf="getAttendanceStatusShort(selectedWorker()!.id, day) as sh">
                   {{ sh }}
                 </span>
               </div>
             </div>
+
+            <p *ngIf="canManageWages()" style="margin: 0 0 8px 0; font-size: 10px; color: var(--ion-color-medium); text-align: center;">
+              Tap any day to edit attendance for this month
+            </p>
 
             <!-- Legend -->
             <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; font-size: 10px;">
@@ -430,6 +578,21 @@
                 <span style="width: 8px; height: 8px; background: rgba(100,210,255,0.15); border-radius: 2px;"></span> OT
               </span>
             </div>
+          </div>
+
+          <!-- Edit Daily Wage -->
+          <div *ngIf="canManageWages()" class="glass-panel" style="padding: 16px; margin-bottom: 16px; border-left: 4px solid var(--ion-color-warning);">
+            <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-warning); margin: 0 0 8px 0;">
+              {{ langService.t('edit_daily_wage') }}
+            </h3>
+            <p style="margin: 0 0 12px 0; font-size: 12px; color: var(--ion-color-medium); line-height: 1.4;">
+              {{ langService.t('edit_daily_wage_desc') }}
+            </p>
+            <label style="font-size: 10px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase;">{{ langService.t('daily_wage_rate') }}</label>
+            <ion-input type="number" [(ngModel)]="editDailyRate" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 8px; border: 1px solid var(--border-light); margin-top: 4px; color: var(--app-text-color); padding: 8px 12px; font-size: 15px;"></ion-input>
+            <ion-button color="warning" expand="block" style="margin-top: 12px; --border-radius: 10px; font-weight: 700;" (click)="saveDailyRate()" [disabled]="editDailyRate <= 0">
+              {{ langService.t('save_changes') }}
+            </ion-button>
           </div>
 
           <!-- Quick Payout Module -->

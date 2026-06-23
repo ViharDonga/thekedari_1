@@ -19,6 +19,17 @@
 
   <link rel="icon" type="image/png" href="assets/icon/favicon.png" />
 
+  <!-- SPA: after Render rewrite to index.html, convert /tabs/... paths to hash routes -->
+  <script>
+    (function () {
+      var path = window.location.pathname;
+      var hash = window.location.hash;
+      if (path && path !== '/' && path !== '/index.html' && !/\.[a-z0-9]+$/i.test(path) && !hash) {
+        window.location.replace('/#' + path + window.location.search);
+      }
+    })();
+  </script>
+
   <!-- add to homescreen for ios -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />

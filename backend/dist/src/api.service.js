@@ -42,14 +42,21 @@ let ApiService = class ApiService {
         return this.filterBySite(workers, user);
     }
     async getSites(user) {
-        const sites = await this.prisma.constructionSite.findMany({
+        let sites = await this.prisma.constructionSite.findMany({
             orderBy: { id: 'asc' },
         });
-        if (user.role === 'ADMIN')
-            return sites;
-        if (user.siteId)
-            return sites.filter((s) => s.id === user.siteId);
-        return [];
+        if (user.role !== 'ADMIN') {
+            if (!user.siteId)
+                return [];
+            sites = sites.filter((s) => s.id === user.siteId);
+        }
+        for (const site of sites) {
+            await this.recalculateSiteExpenses(site.id);
+        }
+        return this.prisma.constructionSite.findMany({
+            where: user.role === 'ADMIN' ? {} : { id: user.siteId },
+            orderBy: { id: 'asc' },
+        });
     }
     async addSite(data, _user) {
         return this.prisma.constructionSite.create({
@@ -119,7 +126,6 @@ let ApiService = class ApiService {
     }
     async addWorker(data, user) {
         this.assertSiteAccess(user, data.siteId);
-        const avatar = `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000)}?w=150`;
         const statusToday = data.employmentType === 'Permanent' ? 'Not Marked' : 'Not Called';
         const worker = await this.prisma.worker.create({
             data: {
@@ -129,7 +135,7 @@ let ApiService = class ApiService {
                 siteId: data.siteId,
                 phone: data.phone,
                 employmentType: data.employmentType,
-                avatar,
+                avatar: '',
                 statusToday,
                 balanceDue: 0,
                 advancePaid: 0,
@@ -137,7 +143,76 @@ let ApiService = class ApiService {
         });
         return worker;
     }
-    async updateWorkerAttendance(workerId, status, overtimeHours, date, user) {
+    async updateWorker(workerId, data, user) {
+        const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
+        if (!worker)
+            throw new Error('Worker not found');
+        this.assertSiteAccess(user, worker.siteId);
+        const updateData = {};
+        if (data.name !== undefined)
+            updateData.name = data.name;
+        if (data.role !== undefined)
+            updateData.role = data.role;
+        if (data.phone !== undefined)
+            updateData.phone = data.phone;
+        if (data.dailyRate !== undefined && data.dailyRate > 0 && data.dailyRate !== worker.dailyRate) {
+            updateData.dailyRate = data.dailyRate;
+            const records = await this.prisma.attendanceRecord.findMany({ where: { workerId } });
+            let totalEarned = 0;
+            for (const record of records) {
+                let newWage;
+                if (record.status === 'Overtime') {
+                    const otExtra = Math.max(0, record.wageEarned - worker.dailyRate);
+                    newWage = data.dailyRate + otExtra;
+                }
+                else {
+                    newWage = this.calculateWage(data.dailyRate, record.status, record.overtimeHours);
+                }
+                await this.prisma.attendanceRecord.update({
+                    where: { id: record.id },
+                    data: { wageEarned: newWage },
+                });
+                totalEarned += newWage;
+            }
+            const wagePaid = await this.prisma.transaction.aggregate({
+                where: { workerId, type: 'Wage Payment' },
+                _sum: { amount: true },
+            });
+            updateData.balanceDue = Math.max(0, totalEarned - (wagePaid._sum.amount || 0));
+            await this.recalculateSiteExpenses(worker.siteId);
+        }
+        return this.prisma.worker.update({
+            where: { id: workerId },
+            data: updateData,
+        });
+    }
+    async updateSite(siteId, data, user) {
+        this.assertSiteAccess(user, siteId);
+        const site = await this.prisma.constructionSite.findUnique({ where: { id: siteId } });
+        if (!site)
+            throw new Error('Site not found');
+        const updateData = {};
+        if (data.name !== undefined)
+            updateData.name = data.name;
+        if (data.location !== undefined)
+            updateData.location = data.location;
+        if (data.budget !== undefined)
+            updateData.budget = data.budget;
+        if (data.supervisorName !== undefined)
+            updateData.supervisorName = data.supervisorName;
+        if (data.otherExpenses !== undefined)
+            updateData.otherExpenses = data.otherExpenses;
+        const updated = await this.prisma.constructionSite.update({
+            where: { id: siteId },
+            data: updateData,
+        });
+        if (data.otherExpenses !== undefined) {
+            await this.recalculateSiteExpenses(siteId);
+            return this.prisma.constructionSite.findUnique({ where: { id: siteId } });
+        }
+        return updated;
+    }
+    async updateWorkerAttendance(workerId, status, overtimeHours, date, user, overtimeAmount) {
         const targetDate = date || this.todayString;
         const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
         if (!worker)
@@ -148,8 +223,10 @@ let ApiService = class ApiService {
         });
         const previousStatus = existingRecord ? existingRecord.status : (worker.employmentType === 'Permanent' ? 'Not Marked' : 'Not Called');
         const previousOvertime = existingRecord ? existingRecord.overtimeHours : 0;
-        const oldWage = this.calculateWage(worker.dailyRate, previousStatus, previousOvertime);
-        const newWage = this.calculateWage(worker.dailyRate, status, overtimeHours);
+        const oldWage = existingRecord
+            ? existingRecord.wageEarned
+            : this.calculateWage(worker.dailyRate, previousStatus, previousOvertime);
+        const newWage = this.calculateWage(worker.dailyRate, status, overtimeHours, overtimeAmount);
         const wageDiff = newWage - oldWage;
         const isToday = targetDate === this.todayString;
         const updateData = {
@@ -357,13 +434,17 @@ let ApiService = class ApiService {
         await this.prisma.labourBooking.delete({ where: { id: bookingId } });
         return { success: true };
     }
-    calculateWage(dailyRate, status, overtimeHours) {
+    calculateWage(dailyRate, status, overtimeHours, overtimeAmount) {
         if (status === 'Present')
             return dailyRate;
         if (status === 'Half Day')
             return dailyRate * 0.5;
-        if (status === 'Overtime')
-            return dailyRate + overtimeHours * (dailyRate / 8);
+        if (status === 'Overtime') {
+            const extra = overtimeAmount !== undefined && overtimeAmount >= 0
+                ? overtimeAmount
+                : overtimeHours * (dailyRate / 8);
+            return dailyRate + extra;
+        }
         return 0;
     }
     getRentalDays(startDate, endDate) {
@@ -384,8 +465,13 @@ let ApiService = class ApiService {
         const attendanceRecords = await this.prisma.attendanceRecord.findMany({
             where: { siteId },
         });
-        const wageLogsTotal = attendanceRecords.reduce((sum, r) => sum + r.wageEarned, 0);
-        const spentWages = wageLogsTotal;
+        const accruedWages = attendanceRecords.reduce((sum, r) => sum + r.wageEarned, 0);
+        const wagePayments = await this.prisma.transaction.aggregate({
+            where: { siteId, type: 'Wage Payment' },
+            _sum: { amount: true },
+        });
+        const paidWages = wagePayments._sum.amount || 0;
+        const spentWages = Math.max(accruedWages, paidWages);
         const deliveries = await this.prisma.materialDelivery.findMany({
             where: { siteId, status: 'Delivered' },
         });

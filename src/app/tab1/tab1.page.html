@@ -96,9 +96,21 @@
             {{ dataService.activeSite().location }}
           </p>
         </div>
-        <ion-badge color="primary" style="font-size: 12px; padding: 6px 10px;">
-          {{ langService.t('active') }}
-        </ion-badge>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <ion-badge color="primary" style="font-size: 12px; padding: 6px 10px;">
+            {{ langService.t('active') }}
+          </ion-badge>
+          <ion-button
+            *ngIf="canEditSite()"
+            fill="outline"
+            color="warning"
+            size="small"
+            (click)="openEditSiteModal()"
+            style="--padding-start: 8px; --padding-end: 8px; margin: 0; height: 28px; font-size: 11px;"
+          >
+            {{ langService.t('edit_site') }}
+          </ion-button>
+        </div>
       </div>
       
       <!-- Budget Utilization Meter -->
@@ -519,6 +531,60 @@
             </ion-button>
             <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitAddSite()">
               {{ langService.t('add_site') }}
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: EDIT SITE -->
+  <ion-modal [isOpen]="showEditSiteModal()" (didDismiss)="closeEditSiteModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('edit_site') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeEditSiteModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('site_name') }}</label>
+            <ion-input [(ngModel)]="siteFormName" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('site_location') }}</label>
+            <ion-input [(ngModel)]="siteFormLocation" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('site_budget') }}</label>
+            <ion-input type="number" [(ngModel)]="siteFormBudget" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('other_expenses') }}</label>
+            <ion-input type="number" [(ngModel)]="siteFormOtherExpenses" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('site_supervisor') }}</label>
+            <ion-input [(ngModel)]="siteFormSupervisor" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+
+          <div style="display: flex; gap: 12px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="closeEditSiteModal()">
+              {{ langService.t('cancel') }}
+            </ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitEditSite()">
+              {{ langService.t('save_changes') }}
             </ion-button>
           </div>
         </div>

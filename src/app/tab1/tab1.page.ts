@@ -45,6 +45,7 @@ export class Tab1Page implements OnInit {
   public showPaymentModal = signal<boolean>(false);
   public showSettingsModal = signal<boolean>(false);
   public showAddSiteModal = signal<boolean>(false);
+  public showEditSiteModal = signal<boolean>(false);
   public showAssignUserModal = signal<boolean>(false);
   public showAndroidDownloadBanner = signal<boolean>(false);
 
@@ -58,6 +59,7 @@ export class Tab1Page implements OnInit {
   public siteFormLocation = '';
   public siteFormBudget = 0;
   public siteFormSupervisor = '';
+  public siteFormOtherExpenses = 0;
 
   // Form Fields State
   public matFormFlowType: 'Purchase' | 'Rental' = 'Purchase';
@@ -174,6 +176,41 @@ export class Tab1Page implements OnInit {
 
   closeAddSiteModal() {
     this.showAddSiteModal.set(false);
+  }
+
+  openEditSiteModal() {
+    const site = this.dataService.activeSite();
+    this.siteFormName = site.name;
+    this.siteFormLocation = site.location;
+    this.siteFormBudget = site.budget;
+    this.siteFormSupervisor = site.supervisorName;
+    this.siteFormOtherExpenses = site.otherExpenses;
+    this.showEditSiteModal.set(true);
+  }
+
+  closeEditSiteModal() {
+    this.showEditSiteModal.set(false);
+  }
+
+  submitEditSite() {
+    const site = this.dataService.activeSite();
+    if (!this.siteFormName || !this.siteFormLocation || this.siteFormBudget <= 0 || !this.siteFormSupervisor) {
+      alert(this.langService.t('add_site_validation'));
+      return;
+    }
+    this.dataService.updateSite(site.id, {
+      name: this.siteFormName,
+      location: this.siteFormLocation,
+      budget: this.siteFormBudget,
+      supervisorName: this.siteFormSupervisor,
+      otherExpenses: this.siteFormOtherExpenses,
+    });
+    this.closeEditSiteModal();
+    alert(this.langService.t('site_updated'));
+  }
+
+  canEditSite(): boolean {
+    return this.authService.isAdmin() || this.authService.isSupervisor();
   }
 
   submitAddSite() {

@@ -55,6 +55,9 @@ let ApiController = class ApiController {
     addSite(user, body) {
         return this.apiService.addSite(body, user);
     }
+    updateSite(user, id, body) {
+        return this.apiService.updateSite(id, body, user);
+    }
     getWorkers(user) {
         return this.apiService.getWorkers(user);
     }
@@ -79,8 +82,11 @@ let ApiController = class ApiController {
     addWorker(user, body) {
         return this.apiService.addWorker(body, user);
     }
+    updateWorker(user, id, body) {
+        return this.apiService.updateWorker(id, body, user);
+    }
     updateWorkerAttendance(user, body) {
-        return this.apiService.updateWorkerAttendance(body.workerId, body.status, body.overtimeHours, body.date, user);
+        return this.apiService.updateWorkerAttendance(body.workerId, body.status, body.overtimeHours, body.date, user, body.overtimeAmount);
     }
     payWorker(user, body) {
         return this.apiService.payWorker(body.workerId, body.amount, body.paymentMode, body.type, user);
@@ -186,6 +192,17 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ApiController.prototype, "addSite", null);
 __decorate([
+    (0, common_1.Patch)('sites/:id'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN', 'SUPERVISOR'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], ApiController.prototype, "updateSite", null);
+__decorate([
     (0, common_1.Get)('workers'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
@@ -251,6 +268,17 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], ApiController.prototype, "addWorker", null);
+__decorate([
+    (0, common_1.Patch)('workers/:id'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN', 'SUPERVISOR'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], ApiController.prototype, "updateWorker", null);
 __decorate([
     (0, common_1.Patch)('attendance'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, roles_guard_1.RolesGuard),

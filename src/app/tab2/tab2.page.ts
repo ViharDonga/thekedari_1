@@ -11,13 +11,14 @@ import { addIcons } from 'ionicons';
 import { 
   search, funnel, call, wallet, calendar, cash, close, 
   checkmarkCircle, time, person, alertCircle, logoWhatsapp, settingsOutline, add,
-  people, trash, personAdd
+  people, trash, personAdd, chevronBack, chevronForward
 } from 'ionicons/icons';
-import { DataService, Worker, Transaction } from '../services/data.service';
+import { DataService, Worker, Transaction, AttendanceRecord } from '../services/data.service';
 import { LanguageService } from '../services/language.service';
 import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
 import { PendingAssignmentComponent } from '../components/pending-assignment.component';
+import { WorkerAvatarComponent } from '../components/worker-avatar.component';
 
 @Component({
   selector: 'app-tab2',
@@ -31,7 +32,8 @@ import { PendingAssignmentComponent } from '../components/pending-assignment.com
     IonModal, IonInput, IonSelect, IonSelectOption, IonButtons,
     IonSegment, IonSegmentButton, IonLabel, IonFab, IonFabButton,
     SettingsModalComponent,
-    PendingAssignmentComponent
+    PendingAssignmentComponent,
+    WorkerAvatarComponent
   ],
 })
 export class Tab2Page {
@@ -52,12 +54,24 @@ export class Tab2Page {
   public showDetailModal = signal<boolean>(false);
   public paymentAmount = signal<number>(0);
   public paymentMode = signal<'Cash' | 'UPI' | 'Bank Transfer'>('UPI');
+  public editDailyRate = 0;
   public showSettingsModal = signal<boolean>(false);
 
-  // Overtime Custom Drawer State
+  // Overtime modal state (plain numbers — signals break ngModel)
   public showOtModal = signal<boolean>(false);
   public otWorker = signal<Worker | null>(null);
-  public otHours = signal<number>(2);
+  public otEditDate = '';
+  public otHoursNum = 2;
+  public otAmountNum = 0;
+
+  // Edit attendance for a calendar day in worker detail
+  public showDayEditModal = signal<boolean>(false);
+  public dayEditDate = '';
+  public dayEditStatus: 'Present' | 'Absent' | 'Half Day' | 'Overtime' = 'Present';
+  public dayEditWage = 0;
+  public dayEditPayment = 0;
+  public dayEditPaymentMode: 'Cash' | 'UPI' | 'Bank Transfer' = 'Cash';
+  public dayEditOtHours = 0;
 
   // Selected Date state
   public selectedDate = signal<string>('');
@@ -93,7 +107,7 @@ export class Tab2Page {
     addIcons({ 
       search, funnel, call, wallet, calendar, cash, close, 
       checkmarkCircle, time, person, alertCircle, logoWhatsapp, settingsOutline, add,
-      people, trash, personAdd
+      people, trash, personAdd, chevronBack, chevronForward
     });
   }
 
@@ -143,13 +157,77 @@ export class Tab2Page {
     return worker.employmentType === 'Permanent' ? 'Not Marked' : 'Not Called';
   }
 
+  getAttendanceRecord(workerId: string, date: string): AttendanceRecord | undefined {
+    return this.dataService.attendanceRecords().find((r) => r.workerId === workerId && r.date === date);
+  }
+
+  getWorkerOvertimeAmountForDate(worker: Worker, date: string): number {
+    const record = this.getAttendanceRecord(worker.id, date);
+    if (record?.status === 'Overtime') {
+      return Math.max(0, Math.round(record.wageEarned - worker.dailyRate));
+    }
+    if (date === this.dataService.todayString && worker.statusToday === 'Overtime') {
+      const rec = this.getAttendanceRecord(worker.id, date);
+      if (rec) {
+        return Math.max(0, Math.round(rec.wageEarned - worker.dailyRate));
+      }
+      return Math.round(worker.overtimeHours * (worker.dailyRate / 8));
+    }
+    return 0;
+  }
+
+  getWorkerWageForDate(worker: Worker, date: string): number {
+    const record = this.getAttendanceRecord(worker.id, date);
+    if (record) {
+      return record.wageEarned;
+    }
+    if (date === this.dataService.todayString) {
+      const status = worker.statusToday;
+      if (status === 'Present') return worker.dailyRate;
+      if (status === 'Half Day') return worker.dailyRate * 0.5;
+      if (status === 'Overtime') {
+        return worker.dailyRate + this.getWorkerOvertimeAmountForDate(worker, date);
+      }
+    }
+    return 0;
+  }
+
   getWorkerOvertimeHoursForSelectedDate(worker: Worker): number {
     const date = this.selectedDate();
     if (date === this.dataService.todayString) {
       return worker.overtimeHours;
     }
-    const record = this.dataService.attendanceRecords().find(r => r.workerId === worker.id && r.date === date);
+    const record = this.getAttendanceRecord(worker.id, date);
     return record ? record.overtimeHours : 0;
+  }
+
+  getWorkerOvertimeAmountForSelectedDate(worker: Worker): number {
+    return this.getWorkerOvertimeAmountForDate(worker, this.selectedDate());
+  }
+
+  isSelectedDateToday(): boolean {
+    return this.selectedDate() === this.dataService.todayString;
+  }
+
+  attendanceMarkLabel(): string {
+    return this.isSelectedDateToday()
+      ? this.langService.t('today_mark')
+      : `${this.langService.t('attendance_mark')}: ${this.selectedDate()}`;
+  }
+
+  calcOtAmountFromHours(worker: Worker, hours: number): number {
+    return Math.round(hours * (worker.dailyRate / 8));
+  }
+
+  calcOtTotalDayPay(worker: Worker): number {
+    return worker.dailyRate + (this.otAmountNum || 0);
+  }
+
+  onOtHoursChange() {
+    const worker = this.otWorker();
+    if (worker) {
+      this.otAmountNum = this.calcOtAmountFromHours(worker, this.otHoursNum);
+    }
   }
 
   onDateChange(event: any) {
@@ -175,21 +253,53 @@ export class Tab2Page {
   setAttendance(worker: Worker, status: 'Present' | 'Absent' | 'Half Day' | 'Overtime' | 'Not Marked') {
     const date = this.selectedDate();
     if (status === 'Overtime') {
-      this.otWorker.set(worker);
-      this.otHours.set(2); // default
-      this.showOtModal.set(true);
+      this.openOtModal(worker, date);
     } else {
       this.dataService.updateWorkerAttendance(worker.id, status, 0, date);
     }
   }
 
-  submitOt() {
-    if (this.otWorker()) {
-      const date = this.selectedDate();
-      this.dataService.updateWorkerAttendance(this.otWorker()!.id, 'Overtime', this.otHours(), date);
-      this.showOtModal.set(false);
-      this.otWorker.set(null);
+  openOtModal(worker: Worker, date: string) {
+    const existingHours = this.getWorkerOvertimeHoursForDate(worker, date);
+    const existingAmount = this.getWorkerOvertimeAmountForDate(worker, date);
+    this.otWorker.set(worker);
+    this.otEditDate = date;
+    this.otHoursNum = existingHours > 0 ? existingHours : 2;
+    this.otAmountNum =
+      existingAmount > 0 ? existingAmount : this.calcOtAmountFromHours(worker, this.otHoursNum);
+    this.showOtModal.set(true);
+  }
+
+  getWorkerOvertimeHoursForDate(worker: Worker, date: string): number {
+    if (date === this.dataService.todayString) {
+      return worker.overtimeHours;
     }
+    const record = this.getAttendanceRecord(worker.id, date);
+    return record ? record.overtimeHours : 0;
+  }
+
+  submitOt() {
+    const worker = this.otWorker();
+    if (!worker) return;
+    if (this.otAmountNum < 0) {
+      alert('Enter a valid OT amount.');
+      return;
+    }
+    const totalDayWage = this.calcOtTotalDayPay(worker);
+    this.dataService.updateWorkerAttendance(
+      worker.id,
+      'Overtime',
+      this.otHoursNum,
+      this.otEditDate,
+      this.otAmountNum,
+      totalDayWage,
+    );
+    const updated = this.dataService.workers().find((w) => w.id === worker.id);
+    if (updated && this.selectedWorker()?.id === worker.id) {
+      this.selectedWorker.set(updated);
+    }
+    this.showOtModal.set(false);
+    this.otWorker.set(null);
   }
 
   closeOtModal() {
@@ -197,15 +307,157 @@ export class Tab2Page {
     this.otWorker.set(null);
   }
 
+  // Monthly calendar
+  changeAttendanceMonth(delta: number) {
+    const [y, m] = this.attendanceMonth().split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    this.attendanceMonth.set(month);
+  }
+
+  attendanceMonthLabel(): string {
+    const [y, m] = this.attendanceMonth().split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  }
+
+  openDayEdit(day: number) {
+    const worker = this.selectedWorker();
+    if (!worker || !this.canManageWages()) return;
+    this.dayEditDate = `${this.attendanceMonth()}-${String(day).padStart(2, '0')}`;
+    const record = this.getAttendanceRecord(worker.id, this.dayEditDate);
+    if (record) {
+      this.dayEditStatus = record.status as 'Present' | 'Absent' | 'Half Day' | 'Overtime';
+      this.dayEditWage = record.wageEarned;
+      this.dayEditOtHours = record.overtimeHours;
+    } else {
+      this.dayEditStatus = 'Present';
+      this.dayEditWage = worker.dailyRate;
+      this.dayEditOtHours = 0;
+    }
+    this.dayEditPayment = this.getDayPaymentTotal(worker.id, this.dayEditDate);
+    this.dayEditPaymentMode = 'Cash';
+    this.showDayEditModal.set(true);
+  }
+
+  closeDayEditModal() {
+    this.showDayEditModal.set(false);
+    this.dayEditDate = '';
+  }
+
+  getDayPaymentTotal(workerId: string, date: string): number {
+    return this.dataService
+      .transactions()
+      .filter((t) => t.workerId === workerId && t.date === date && t.type === 'Wage Payment')
+      .reduce((sum, t) => sum + t.amount, 0);
+  }
+
+  selectDayStatus(status: 'Present' | 'Absent' | 'Half Day' | 'Overtime') {
+    const worker = this.selectedWorker();
+    if (!worker) return;
+    if (status === 'Overtime') {
+      this.closeDayEditModal();
+      this.openOtModal(worker, this.dayEditDate);
+      return;
+    }
+    this.dayEditStatus = status;
+    if (status === 'Present') {
+      this.dayEditWage = worker.dailyRate;
+    } else if (status === 'Half Day') {
+      this.dayEditWage = Math.round(worker.dailyRate / 2);
+    } else if (status === 'Absent') {
+      this.dayEditWage = 0;
+    }
+  }
+
+  saveDayEdit() {
+    const worker = this.selectedWorker();
+    if (!worker || !this.dayEditDate) return;
+
+    if (this.dayEditStatus === 'Absent' && this.dayEditWage <= 0) {
+      this.dataService.updateWorkerAttendance(worker.id, 'Absent', 0, this.dayEditDate, undefined, 0);
+    } else if (this.dayEditWage < 0) {
+      alert('Enter a valid day wage amount.');
+      return;
+    } else {
+      const otExtra =
+        this.dayEditStatus === 'Overtime'
+          ? Math.max(0, this.dayEditWage - worker.dailyRate)
+          : undefined;
+      this.dataService.updateWorkerAttendance(
+        worker.id,
+        this.dayEditStatus,
+        this.dayEditOtHours,
+        this.dayEditDate,
+        otExtra,
+        this.dayEditWage,
+      );
+    }
+
+    const existingPaid = this.getDayPaymentTotal(worker.id, this.dayEditDate);
+    const newPayment = this.dayEditPayment;
+    if (newPayment > 0 && newPayment !== existingPaid) {
+      const delta = newPayment - existingPaid;
+      if (delta > 0) {
+        this.dataService.payWorker(worker.id, delta, this.dayEditPaymentMode, 'Wage Payment', this.dayEditDate);
+      }
+    }
+
+    this.closeDayEditModal();
+    alert(this.langService.t('save_day_edit') + ' ✓');
+  }
+
+  getDayEditStatus(): string {
+    const worker = this.selectedWorker();
+    if (!worker || !this.dayEditDate) return 'None';
+    const record = this.getAttendanceRecord(worker.id, this.dayEditDate);
+    return record ? record.status : 'None';
+  }
+
+  getDayEditWage(): number {
+    const worker = this.selectedWorker();
+    if (!worker || !this.dayEditDate) return 0;
+    return this.getWorkerWageForDate(worker, this.dayEditDate);
+  }
+
+  getDayOvertimeAmount(workerId: string, day: number): number {
+    const worker = this.selectedWorker();
+    if (!worker) return 0;
+    const dateStr = `${this.attendanceMonth()}-${String(day).padStart(2, '0')}`;
+    return this.getWorkerOvertimeAmountForDate(worker, dateStr);
+  }
+
   viewWorkerDetails(worker: Worker) {
     this.selectedWorker.set(worker);
+    this.editDailyRate = worker.dailyRate;
     this.paymentAmount.set(0);
+    this.attendanceMonth.set(this.selectedDate().substring(0, 7));
     this.showDetailModal.set(true);
   }
 
   closeDetailModal() {
     this.showDetailModal.set(false);
     this.selectedWorker.set(null);
+  }
+
+  saveDailyRate() {
+    const worker = this.selectedWorker();
+    if (!worker || this.editDailyRate <= 0) {
+      alert('Enter a valid daily wage.');
+      return;
+    }
+    if (this.editDailyRate === worker.dailyRate) {
+      return;
+    }
+    if (!confirm(`Change daily wage from ₹${worker.dailyRate} to ₹${this.editDailyRate}? Past attendance will be recalculated.`)) {
+      return;
+    }
+    this.dataService.updateWorker(worker.id, { dailyRate: this.editDailyRate });
+    this.selectedWorker.set({ ...worker, dailyRate: this.editDailyRate });
+    alert(this.langService.t('wage_updated'));
+  }
+
+  canManageWages(): boolean {
+    return this.authService.isAdmin() || this.authService.isSupervisor();
   }
 
   submitDetailPayment() {
@@ -264,7 +516,10 @@ export class Tab2Page {
     if (status === 'Present') return 'P';
     if (status === 'Absent') return 'A';
     if (status === 'Half Day') return 'HD';
-    if (status === 'Overtime') return 'OT';
+    if (status === 'Overtime') {
+      const amt = this.getDayOvertimeAmount(workerId, day);
+      return amt > 0 ? `+₹${amt}` : 'OT';
+    }
     return '';
   }
 
