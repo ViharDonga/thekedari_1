@@ -1,0 +1,78 @@
+<ion-content [fullscreen]="true" class="auth-content">
+  <div class="auth-glow auth-glow-1"></div>
+  <div class="auth-glow auth-glow-2"></div>
+
+  <div class="auth-wrapper">
+    <div class="auth-brand">
+      <div class="auth-logo">
+        <ion-icon name="person-add" color="primary"></ion-icon>
+      </div>
+      <h1>{{ langService.t('signup_title') }}</h1>
+      <p>{{ langService.t('signup_subtitle') }}</p>
+    </div>
+
+    <div class="auth-card glass-panel">
+      <h2 class="auth-card-title">{{ langService.t('create_account') }}</h2>
+      <p class="auth-card-subtitle">{{ langService.t('signup_pending_site') }}</p>
+
+      <div class="auth-field">
+        <label>{{ langService.t('full_name') }}</label>
+        <div class="auth-input-wrap">
+          <ion-icon name="person" color="primary"></ion-icon>
+          <ion-input [(ngModel)]="name" [placeholder]="langService.t('full_name')"></ion-input>
+        </div>
+      </div>
+
+      <div class="auth-field">
+        <label>{{ langService.t('username') }}</label>
+        <div class="auth-input-wrap">
+          <ion-icon name="person" color="primary"></ion-icon>
+          <ion-input [(ngModel)]="username" autocomplete="username" [placeholder]="langService.t('username')"></ion-input>
+        </div>
+      </div>
+
+      <div class="auth-field">
+        <label>{{ langService.t('account_role') }}</label>
+        <ion-select [(ngModel)]="role" interface="popover" class="auth-select">
+          <ion-select-option value="SUPERVISOR">{{ langService.t('role_supervisor') }}</ion-select-option>
+          <ion-select-option value="LABOUR">{{ langService.t('role_labour') }}</ion-select-option>
+        </ion-select>
+      </div>
+
+      <div class="auth-field">
+        <label>{{ langService.t('password') }}</label>
+        <div class="auth-input-wrap">
+          <ion-icon name="lock-closed" color="primary"></ion-icon>
+          <ion-input [(ngModel)]="password" type="password" autocomplete="new-password" [placeholder]="langService.t('password')"></ion-input>
+        </div>
+      </div>
+
+      <div class="auth-field">
+        <label>{{ langService.t('confirm_password') }}</label>
+        <div class="auth-input-wrap">
+          <ion-icon name="lock-closed" color="primary"></ion-icon>
+          <ion-input
+            [(ngModel)]="confirmPassword"
+            type="password"
+            autocomplete="new-password"
+            [placeholder]="langService.t('confirm_password')"
+            (keyup.enter)="submit()"
+          ></ion-input>
+        </div>
+      </div>
+
+      <p class="auth-error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
+      <p class="auth-success" *ngIf="successMessage()">{{ successMessage() }}</p>
+
+      <ion-button expand="block" color="primary" class="auth-submit" (click)="submit()" [disabled]="isLoading()">
+        <ion-icon name="person-add" slot="start"></ion-icon>
+        {{ isLoading() ? langService.t('creating_account') : langService.t('signup_button') }}
+      </ion-button>
+
+      <p class="auth-switch">
+        {{ langService.t('already_have_account') }}
+        <a routerLink="/login">{{ langService.t('login_button') }}</a>
+      </p>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,5 @@
+-- PostgreSQL 18 (port 5433) setup for Thekedari
+--
+-- STEP 1: Run setup-pg18-user.sql in Query Tool
+-- STEP 2: Create database using setup-pg18-database.sql instructions (GUI or psql)
+-- STEP 3: cd backend && npx prisma migrate deploy && npm run prisma:seed

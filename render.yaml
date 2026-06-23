@@ -1,9 +1,46 @@
+databases:
+  - name: thekedari-db
+    plan: free
+    databaseName: thekedari
+    user: thekedari
+
 services:
+  # NestJS API + Prisma (uses Render PostgreSQL — not Docker)
+  - type: web
+    name: thekedari-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npx prisma generate && npm run build && npx prisma migrate deploy
+    startCommand: npm run start:prod
+    healthCheckPath: /api/public/sites
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: thekedari-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: thekedari-web
+          envVarKey: RENDER_EXTERNAL_URL
+
+  # Ionic/Angular static frontend
   - type: web
     name: thekedari-web
     runtime: static
-    buildCommand: npm run build
-    publishDir: www
+    buildCommand: npm install --legacy-peer-deps && node scripts/generate-env.js && npm run build
+    staticPublishPath: www
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: thekedari-api
+          envVarKey: RENDER_EXTERNAL_URL
     routes:
       - type: redirect
         source: /download

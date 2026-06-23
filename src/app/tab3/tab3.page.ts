@@ -40,10 +40,10 @@ export class Tab3Page {
   public showSettingsModal = signal<boolean>(false);
   
   public formFlowType: 'Purchase' | 'Rental' = 'Purchase';
-  public formMatName = 'Cement (UltraTech)';
+  public formMatName = '';
   public formSize = '';
   public formRatePerDay = 0;
-  public formStartDate = '2026-06-02';
+  public formStartDate = '';
   public showCustomNameInput = false;
 
   public formSupplierName = '';
@@ -64,14 +64,14 @@ export class Tab3Page {
 
   openAddModal() {
     this.formFlowType = 'Purchase';
-    this.formMatName = 'Cement (UltraTech)';
+    this.formMatName = '';
     this.showCustomNameInput = false;
     this.formSupplierName = '';
-    this.formQty = 100;
+    this.formQty = 0;
     this.formUnit = 'Bags';
-    this.formRate = 420;
-    this.formSize = '3*3';
-    this.formRatePerDay = 10;
+    this.formRate = 0;
+    this.formSize = '';
+    this.formRatePerDay = 0;
     this.formStartDate = this.dataService.todayString;
     this.showAddModal.set(true);
   }

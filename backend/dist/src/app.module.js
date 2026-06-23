@@ -11,6 +11,9 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("./prisma.service");
 const api_service_1 = require("./api.service");
 const api_controller_1 = require("./api.controller");
+const auth_service_1 = require("./auth.service");
+const auth_guard_1 = require("./auth.guard");
+const roles_guard_1 = require("./roles.guard");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -18,7 +21,7 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [],
         controllers: [api_controller_1.ApiController],
-        providers: [prisma_service_1.PrismaService, api_service_1.ApiService],
+        providers: [prisma_service_1.PrismaService, api_service_1.ApiService, auth_service_1.AuthService, auth_guard_1.AuthGuard, roles_guard_1.RolesGuard],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

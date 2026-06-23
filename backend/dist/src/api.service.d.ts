@@ -1,11 +1,13 @@
 import { PrismaService } from './prisma.service';
+import { JwtPayload } from './auth.service';
 export declare class ApiService {
     private prisma;
-    private todayString;
-    private baseWages;
-    private baseMaterials;
+    private get todayString();
     constructor(prisma: PrismaService);
-    getSites(): Promise<{
+    private assertSiteAccess;
+    private filterBySite;
+    private filterWorkersByRole;
+    getSites(user: JwtPayload): Promise<{
         id: string;
         name: string;
         location: string;
@@ -17,7 +19,24 @@ export declare class ApiService {
         totalExpenses: number;
         supervisorName: string;
     }[]>;
-    getWorkers(): Promise<{
+    addSite(data: {
+        name: string;
+        location: string;
+        budget: number;
+        supervisorName: string;
+    }, _user: JwtPayload): Promise<{
+        id: string;
+        name: string;
+        location: string;
+        budget: number;
+        spentWages: number;
+        spentMaterials: number;
+        spentRentals: number;
+        otherExpenses: number;
+        totalExpenses: number;
+        supervisorName: string;
+    }>;
+    getWorkers(user: JwtPayload): Promise<{
         id: string;
         name: string;
         role: string;
@@ -31,7 +50,7 @@ export declare class ApiService {
         avatar: string;
         employmentType: string;
     }[]>;
-    getMaterials(): Promise<{
+    getMaterials(user: JwtPayload): Promise<{
         id: string;
         name: string;
         siteId: string;
@@ -40,7 +59,7 @@ export declare class ApiService {
         lowStockThreshold: number;
         lastUpdated: string;
     }[]>;
-    getDeliveries(): Promise<{
+    getDeliveries(user: JwtPayload): Promise<{
         id: string;
         siteId: string;
         unit: string;
@@ -52,7 +71,7 @@ export declare class ApiService {
         status: string;
         date: string;
     }[]>;
-    getTransactions(): Promise<{
+    getTransactions(user: JwtPayload): Promise<{
         id: string;
         siteId: string;
         date: string;
@@ -62,7 +81,7 @@ export declare class ApiService {
         type: string;
         paymentMode: string;
     }[]>;
-    getAttendanceRecords(): Promise<{
+    getAttendanceRecords(user: JwtPayload): Promise<{
         id: string;
         siteId: string;
         overtimeHours: number;
@@ -71,18 +90,18 @@ export declare class ApiService {
         workerId: string;
         wageEarned: number;
     }[]>;
-    getRentals(): Promise<{
+    getRentals(user: JwtPayload): Promise<{
         id: string;
         name: string;
-        endDate: string | null;
         siteId: string;
         supplierName: string;
         quantity: number;
         size: string;
         ratePerDay: number;
         startDate: string;
+        endDate: string | null;
     }[]>;
-    getBookings(): Promise<{
+    getBookings(user: JwtPayload): Promise<{
         id: string;
         dailyRate: number;
         siteId: string;
@@ -99,7 +118,7 @@ export declare class ApiService {
         siteId: string;
         phone: string;
         employmentType: string;
-    }): Promise<{
+    }, user: JwtPayload): Promise<{
         id: string;
         name: string;
         role: string;
@@ -113,7 +132,7 @@ export declare class ApiService {
         avatar: string;
         employmentType: string;
     }>;
-    updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date?: string): Promise<{
+    updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date: string | undefined, user: JwtPayload): Promise<{
         id: string;
         name: string;
         role: string;
@@ -127,7 +146,7 @@ export declare class ApiService {
         avatar: string;
         employmentType: string;
     }>;
-    payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment'): Promise<{
+    payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment', user: JwtPayload): Promise<{
         id: string;
         siteId: string;
         date: string;
@@ -137,7 +156,7 @@ export declare class ApiService {
         type: string;
         paymentMode: string;
     }>;
-    deleteAdvanceTransaction(txId: string): Promise<{
+    deleteAdvanceTransaction(txId: string, user: JwtPayload): Promise<{
         success: boolean;
     }>;
     addRentalMaterial(data: {
@@ -148,32 +167,32 @@ export declare class ApiService {
         supplierName: string;
         startDate: string;
         siteId: string;
-    }): Promise<{
+    }, user: JwtPayload): Promise<{
         id: string;
         name: string;
-        endDate: string | null;
         siteId: string;
         supplierName: string;
         quantity: number;
         size: string;
         ratePerDay: number;
         startDate: string;
+        endDate: string | null;
     }>;
-    returnRentalMaterial(rentalId: string, endDate: string): Promise<{
+    returnRentalMaterial(rentalId: string, endDate: string, user: JwtPayload): Promise<{
         id: string;
         name: string;
-        endDate: string | null;
         siteId: string;
         supplierName: string;
         quantity: number;
         size: string;
         ratePerDay: number;
         startDate: string;
+        endDate: string | null;
     }>;
-    deleteRentalMaterial(rentalId: string): Promise<{
+    deleteRentalMaterial(rentalId: string, user: JwtPayload): Promise<{
         success: boolean;
     }>;
-    receiveMaterial(siteId: string, materialName: string, supplierName: string, quantity: number, unit: string, ratePerUnit: number): Promise<{
+    receiveMaterial(siteId: string, materialName: string, supplierName: string, quantity: number, unit: string, ratePerUnit: number, user: JwtPayload): Promise<{
         id: string;
         siteId: string;
         unit: string;
@@ -191,7 +210,7 @@ export declare class ApiService {
         bookingDate: string;
         dailyRate: number;
         remarks: string;
-    }): Promise<{
+    }, user: JwtPayload): Promise<{
         id: string;
         dailyRate: number;
         siteId: string;
@@ -201,7 +220,7 @@ export declare class ApiService {
         bookingDate: string;
         remarks: string;
     }>;
-    cancelLabourBooking(bookingId: string): Promise<{
+    cancelLabourBooking(bookingId: string, user: JwtPayload): Promise<{
         success: boolean;
     }>;
     private calculateWage;

@@ -221,7 +221,7 @@
           <!-- Purchase vs Rental Segment Toggle -->
           <div style="margin-bottom: 16px;">
             <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('material_flow_label') }}</label>
-            <ion-segment [value]="formFlowType" (ionChange)="formFlowType = $any($event.detail.value); showCustomNameInput = false; formMatName = (formFlowType === 'Purchase' ? 'Cement (UltraTech)' : 'Steel Plate')" style="--background: rgba(30, 33, 45, 0.4); border-radius: 10px; margin-top: 6px;">
+            <ion-segment [value]="formFlowType" (ionChange)="formFlowType = $any($event.detail.value); showCustomNameInput = false; formMatName = ''" style="--background: rgba(30, 33, 45, 0.4); border-radius: 10px; margin-top: 6px;">
               <ion-segment-button value="Purchase">
                 <ion-label style="font-size: 11px; font-weight: 700;">{{ langService.t('purchase') }}</ion-label>
               </ion-segment-button>
@@ -258,7 +258,7 @@
             
             <div *ngIf="showCustomNameInput" style="position: relative; margin-top: 6px;">
               <ion-input [(ngModel)]="formMatName" placeholder="e.g. Scaffolding Clamps" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
-              <span (click)="showCustomNameInput = false; formMatName = (formFlowType === 'Purchase' ? 'Cement (UltraTech)' : 'Steel Plate')" style="font-size: 11px; color: var(--ion-color-primary); font-weight: 700; text-decoration: underline; cursor: pointer; display: block; margin-top: 4px; text-align: right;">
+              <span (click)="showCustomNameInput = false; formMatName = ''" style="font-size: 11px; color: var(--ion-color-primary); font-weight: 700; text-decoration: underline; cursor: pointer; display: block; margin-top: 4px; text-align: right;">
                 {{ langService.t('common_materials') }}
               </span>
             </div>
@@ -267,7 +267,7 @@
           <!-- Supplier / Rental Vendor Name -->
           <div style="margin-bottom: 16px;">
             <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('supplier_name') }}</label>
-            <ion-input [(ngModel)]="formSupplierName" placeholder="e.g. Balaji Building Materials" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+            <ion-input [(ngModel)]="formSupplierName" placeholder="Supplier name" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
           </div>
 
           <!-- Quantity -->

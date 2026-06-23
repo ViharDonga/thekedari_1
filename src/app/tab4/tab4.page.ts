@@ -40,19 +40,33 @@ export class Tab4Page {
   public activeSegment = signal<'summary' | 'detail' | 'labour'>('summary');
   
   // Selected site for detailed report
-  public selectedSiteId = signal<string>('site-1');
+  public selectedSiteId = signal<string>('');
 
   // Selected worker for detailed labour report
   public selectedWorkerId = signal<string>('');
 
   // Selected month for detailed labour report
-  public selectedMonth = signal<string>('2026-06');
+  public selectedMonth = signal<string>('');
+
+  // Last 6 months for labour report dropdown
+  public monthOptions = computed(() => {
+    const options: { value: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+      options.push({ value, label });
+    }
+    return options;
+  });
   
   // Settings modal
   public showSettingsModal = signal<boolean>(false);
 
   constructor() {
-    addIcons({ 
+    this.selectedMonth.set(this.dataService.todayString.substring(0, 7));
+    addIcons({
       business, statsChart, print, cash, cube, wallet, 
       calendar, documentText, barChart, chevronDown, alertCircle, settingsOutline,
       person, checkmarkCircle, time, close
@@ -211,8 +225,8 @@ export class Tab4Page {
   }
 
   getCurrentDay(): number {
-    const currentSimulatedMonth = this.dataService.todayString.substring(0, 7); // '2026-06'
-    if (this.selectedMonth() === currentSimulatedMonth) {
+    const currentMonth = this.dataService.todayString.substring(0, 7);
+    if (this.selectedMonth() === currentMonth) {
       return parseInt(this.dataService.todayString.split('-')[2], 10);
     }
     return -1;

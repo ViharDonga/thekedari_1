@@ -28,11 +28,20 @@ log.txt
 /tmp
 /out-tsc
 /bazel-out
+backend/dist/
 
-# Node
-/node_modules
+# Node (all folders named node_modules, anywhere in the repo)
+node_modules/
+**/node_modules/
+
 npm-debug.log
 yarn-error.log
+.package-lock.json
+
+# Secrets — never commit
+.env
+backend/.env
+**/.env
 
 # IDEs and editors
 .idea/

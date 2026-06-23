@@ -1,0 +1,56 @@
+<ion-content [fullscreen]="true" class="auth-content">
+  <div class="auth-glow auth-glow-1"></div>
+  <div class="auth-glow auth-glow-2"></div>
+
+  <div class="auth-wrapper">
+    <div class="auth-brand">
+      <div class="auth-logo">
+        <ion-icon name="business" color="primary"></ion-icon>
+      </div>
+      <h1>{{ langService.t('app_title') }}</h1>
+      <p>{{ langService.t('sub_title') }}</p>
+    </div>
+
+    <div class="auth-card glass-panel">
+      <h2 class="auth-card-title">{{ langService.t('login_title') }}</h2>
+
+      <div class="auth-field">
+        <label>{{ langService.t('username') }}</label>
+        <div class="auth-input-wrap">
+          <ion-icon name="person" color="primary"></ion-icon>
+          <ion-input
+            [(ngModel)]="username"
+            autocomplete="username"
+            [placeholder]="langService.t('username')"
+          ></ion-input>
+        </div>
+      </div>
+
+      <div class="auth-field">
+        <label>{{ langService.t('password') }}</label>
+        <div class="auth-input-wrap">
+          <ion-icon name="lock-closed" color="primary"></ion-icon>
+          <ion-input
+            [(ngModel)]="password"
+            type="password"
+            autocomplete="current-password"
+            [placeholder]="langService.t('password')"
+            (keyup.enter)="submit()"
+          ></ion-input>
+        </div>
+      </div>
+
+      <p class="auth-error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
+
+      <ion-button expand="block" color="primary" class="auth-submit" (click)="submit()" [disabled]="isLoading() || !username || !password">
+        <ion-icon name="log-in" slot="start"></ion-icon>
+        {{ isLoading() ? langService.t('logging_in') : langService.t('login_button') }}
+      </ion-button>
+
+      <p class="auth-switch">
+        {{ langService.t('no_account') }}
+        <a routerLink="/signup">{{ langService.t('signup_link') }}</a>
+      </p>
+    </div>
+  </div>
+</ion-content>

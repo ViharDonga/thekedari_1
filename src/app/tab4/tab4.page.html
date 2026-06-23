@@ -390,12 +390,7 @@
             (ionChange)="selectedMonth.set($event.detail.value)"
             toggleIcon="chevron-down"
           >
-            <ion-select-option value="2026-06">June 2026</ion-select-option>
-            <ion-select-option value="2026-05">May 2026</ion-select-option>
-            <ion-select-option value="2026-04">April 2026</ion-select-option>
-            <ion-select-option value="2026-03">March 2026</ion-select-option>
-            <ion-select-option value="2026-02">February 2026</ion-select-option>
-            <ion-select-option value="2026-01">January 2026</ion-select-option>
+            <ion-select-option *ngFor="let m of monthOptions()" [value]="m.value">{{ m.label }}</ion-select-option>
           </ion-select>
         </div>
       </div>
