@@ -14,6 +14,7 @@
     "start:dev": "node ./node_modules/@nestjs/cli/bin/nest.js start --watch",
     "start:debug": "node ./node_modules/@nestjs/cli/bin/nest.js start --debug --watch",
     "start:prod": "node dist/src/main.js",
+    "start:render": "prisma migrate deploy && node dist/src/main.js",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
