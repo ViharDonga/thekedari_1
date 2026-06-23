@@ -6,8 +6,9 @@ import {
   IonButtons, IonToggle
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, downloadOutline } from 'ionicons/icons';
+import { close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, downloadOutline, logOut } from 'ionicons/icons';
 import { LanguageService, SupportedLanguage } from '../services/language.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-settings-modal',
@@ -40,6 +41,20 @@ import { LanguageService, SupportedLanguage } from '../services/language.service
     <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
       <!-- Decorative Glow -->
       <div style="position: absolute; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,159,10,0.04) 0%, rgba(0,0,0,0) 70%); top: 50px; right: -50px; pointer-events: none; z-index: -1;"></div>
+
+      <!-- Account -->
+      <div class="glass-panel" style="padding: 16px; margin-bottom: 16px; margin-top: 10px;">
+        <h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-primary);">
+          {{ langService.t('logged_in_as') }}
+        </h3>
+        <p style="margin: 0 0 12px 0; font-size: 14px; color: var(--app-text-color); font-weight: 600;">
+          {{ authService.currentUser()?.name }} ({{ authService.currentUser()?.role }})
+        </p>
+        <ion-button expand="block" color="danger" fill="outline" style="--border-radius: 12px; font-weight: 700; height: 40px; margin: 0;" (click)="logout()">
+          <ion-icon name="log-out" slot="start"></ion-icon>
+          {{ langService.t('logout') }}
+        </ion-button>
+      </div>
 
       <!-- Language Selector -->
       <div class="glass-panel" style="padding: 16px; margin-bottom: 16px; margin-top: 10px;">
@@ -132,7 +147,7 @@ import { LanguageService, SupportedLanguage } from '../services/language.service
         <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
             <span style="color: var(--ion-color-medium);">{{ langService.t('biz_name') }}</span>
-            <span style="color: var(--app-text-color); font-weight: 600;">Balaji Builders & Contractors</span>
+            <span style="color: var(--app-text-color); font-weight: 600;">—</span>
           </div>
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
             <span style="color: var(--ion-color-medium);">{{ langService.t('contractor_license') }}</span>
@@ -177,11 +192,12 @@ import { LanguageService, SupportedLanguage } from '../services/language.service
 })
 export class SettingsModalComponent {
   public langService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   @Output() dismiss = new EventEmitter<void>();
 
   constructor() {
-    addIcons({ close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, downloadOutline });
+    addIcons({ close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, downloadOutline, logOut });
   }
 
   setLang(lang: SupportedLanguage) {
@@ -194,5 +210,10 @@ export class SettingsModalComponent {
 
   close() {
     this.dismiss.emit();
+  }
+
+  logout() {
+    this.authService.logout();
+    this.close();
   }
 }

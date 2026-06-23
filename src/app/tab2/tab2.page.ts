@@ -15,7 +15,9 @@ import {
 } from 'ionicons/icons';
 import { DataService, Worker, Transaction } from '../services/data.service';
 import { LanguageService } from '../services/language.service';
+import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
+import { PendingAssignmentComponent } from '../components/pending-assignment.component';
 
 @Component({
   selector: 'app-tab2',
@@ -28,12 +30,14 @@ import { SettingsModalComponent } from '../components/settings-modal.component';
     IonAvatar, IonBadge, IonButton, IonIcon, IonSearchbar, 
     IonModal, IonInput, IonSelect, IonSelectOption, IonButtons,
     IonSegment, IonSegmentButton, IonLabel, IonFab, IonFabButton,
-    SettingsModalComponent
+    SettingsModalComponent,
+    PendingAssignmentComponent
   ],
 })
 export class Tab2Page {
   public dataService = inject(DataService);
   public langService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   // Active Sub-Tab Segment
   public activeLabourTab = signal<'roster' | 'bookings' | 'payouts_ledger'>('roster');
@@ -62,7 +66,7 @@ export class Tab2Page {
   public showBookingModal = signal<boolean>(false);
   public bookingWorkerId = '';
   public bookingSiteId = '';
-  public bookingDate = '2026-06-05';
+  public bookingDate = '';
   public bookingRate = 500;
   public bookingRemarks = '';
 
@@ -80,8 +84,12 @@ export class Tab2Page {
     return this.dataService.transactions().filter(t => t.type === 'Advance Payment');
   });
 
+  // Current month for attendance grid (YYYY-MM)
+  public attendanceMonth = signal<string>('');
+
   constructor() {
     this.selectedDate.set(this.dataService.todayString);
+    this.attendanceMonth.set(this.dataService.todayString.substring(0, 7));
     addIcons({ 
       search, funnel, call, wallet, calendar, cash, close, 
       checkmarkCircle, time, person, alertCircle, logoWhatsapp, settingsOutline, add,
@@ -236,11 +244,19 @@ export class Tab2Page {
 
   // Monthly calendar helpers
   getMonthDays(): number[] {
-    return Array.from({ length: 30 }, (_, i) => i + 1);
+    const [yearStr, monthStr] = this.attendanceMonth().split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const daysCount = new Date(year, month, 0).getDate();
+    return Array.from({ length: daysCount }, (_, i) => i + 1);
   }
 
   getCurrentDay(): number {
-    return parseInt(this.dataService.todayString.split('-')[2], 10);
+    const currentMonth = this.dataService.todayString.substring(0, 7);
+    if (this.attendanceMonth() === currentMonth) {
+      return parseInt(this.dataService.todayString.split('-')[2], 10);
+    }
+    return -1;
   }
 
   getAttendanceStatusShort(workerId: string, day: number): string {
@@ -253,7 +269,7 @@ export class Tab2Page {
   }
 
   getAttendanceStatusForDay(workerId: string, day: number): string {
-    const dateStr = `2026-06-${day.toString().padStart(2, '0')}`;
+    const dateStr = `${this.attendanceMonth()}-${day.toString().padStart(2, '0')}`;
     const record = this.dataService.attendanceRecords().find(r => r.workerId === workerId && r.date === dateStr);
     return record ? record.status : 'None';
   }
@@ -282,7 +298,7 @@ export class Tab2Page {
     const sites = this.dataService.sites();
     this.bookingWorkerId = workers.length > 0 ? workers[0].id : '';
     this.bookingSiteId = sites.length > 0 ? sites[0].id : '';
-    this.bookingDate = '2026-06-10'; // Simulated future booking date
+    this.bookingDate = this.dataService.todayString;
     this.bookingRate = workers.length > 0 ? workers[0].dailyRate : 500;
     this.bookingRemarks = '';
     this.showBookingModal.set(true);

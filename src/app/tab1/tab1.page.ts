@@ -14,7 +14,10 @@ import {
 } from 'ionicons/icons';
 import { DataService, ConstructionSite, Worker } from '../services/data.service';
 import { LanguageService } from '../services/language.service';
+import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
+import { PendingAssignmentComponent } from '../components/pending-assignment.component';
+import { AuthUser } from '../services/auth.service';
 
 @Component({
   selector: 'app-tab1',
@@ -26,25 +29,40 @@ import { SettingsModalComponent } from '../components/settings-modal.component';
     IonHeader, IonToolbar, IonTitle, IonContent, 
     IonList, IonButton, IonIcon, IonSelect, IonSelectOption, IonProgressBar, 
     IonModal, IonInput, IonBadge, IonButtons, IonSegment, IonSegmentButton, IonLabel,
-    SettingsModalComponent
+    SettingsModalComponent,
+    PendingAssignmentComponent
   ],
 })
 export class Tab1Page implements OnInit {
   public dataService = inject(DataService);
   public langService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   // Modal Visibility Signals
   public showMaterialModal = signal<boolean>(false);
   public showPaymentModal = signal<boolean>(false);
   public showSettingsModal = signal<boolean>(false);
+  public showAddSiteModal = signal<boolean>(false);
+  public showAssignUserModal = signal<boolean>(false);
   public showAndroidDownloadBanner = signal<boolean>(false);
+
+  public pendingUsers = signal<AuthUser[]>([]);
+  public assignUserId = '';
+  public assignSiteId = '';
+  public assignWorkerId = '';
+
+  // Add Site Form
+  public siteFormName = '';
+  public siteFormLocation = '';
+  public siteFormBudget = 0;
+  public siteFormSupervisor = '';
 
   // Form Fields State
   public matFormFlowType: 'Purchase' | 'Rental' = 'Purchase';
   public matFormName = '';
   public matFormSize = '';
   public matFormRatePerDay = 0;
-  public matFormStartDate = '2026-06-02';
+  public matFormStartDate = '';
   public showCustomNameInput = false;
   
   public matFormSupplier = '';
@@ -83,16 +101,15 @@ export class Tab1Page implements OnInit {
   }
 
   openMaterialModal() {
-    // Reset form
     this.matFormFlowType = 'Purchase';
-    this.matFormName = 'Cement (UltraTech)';
+    this.matFormName = '';
     this.showCustomNameInput = false;
     this.matFormSupplier = '';
-    this.matFormQty = 100;
+    this.matFormQty = 0;
     this.matFormUnit = 'Bags';
-    this.matFormRate = 420;
-    this.matFormSize = '3*3';
-    this.matFormRatePerDay = 10;
+    this.matFormRate = 0;
+    this.matFormSize = '';
+    this.matFormRatePerDay = 0;
     this.matFormStartDate = this.dataService.todayString;
     this.showMaterialModal.set(true);
   }
@@ -145,6 +162,79 @@ export class Tab1Page implements OnInit {
     this.showPaymentModal.set(false);
   }
 
+  openAddSiteModal() {
+    this.siteFormName = '';
+    this.siteFormLocation = '';
+    this.siteFormBudget = 0;
+    this.siteFormSupervisor = '';
+    this.showAddSiteModal.set(true);
+  }
+
+  closeAddSiteModal() {
+    this.showAddSiteModal.set(false);
+  }
+
+  submitAddSite() {
+    if (!this.siteFormName || !this.siteFormLocation || this.siteFormBudget <= 0 || !this.siteFormSupervisor) {
+      alert(this.langService.t('add_site_validation'));
+      return;
+    }
+
+    this.dataService.addSite(
+      this.siteFormName,
+      this.siteFormLocation,
+      this.siteFormBudget,
+      this.siteFormSupervisor,
+    );
+    this.closeAddSiteModal();
+  }
+
+  openAssignUserModal() {
+    this.assignUserId = '';
+    this.assignSiteId = this.dataService.sites()[0]?.id || '';
+    this.assignWorkerId = '';
+    this.authService.listUsers().subscribe({
+      next: (users) => {
+        this.pendingUsers.set(users.filter((u) => u.role !== 'ADMIN' && !u.siteId));
+        this.showAssignUserModal.set(true);
+      },
+    });
+  }
+
+  closeAssignUserModal() {
+    this.showAssignUserModal.set(false);
+  }
+
+  onAssignUserChange() {
+    this.assignWorkerId = '';
+    const user = this.pendingUsers().find((u) => u.id === this.assignUserId);
+    if (user?.role === 'LABOUR' && this.assignSiteId) {
+      const workers = this.dataService.workers().filter((w) => w.siteId === this.assignSiteId);
+      this.assignWorkerId = workers[0]?.id || '';
+    }
+  }
+
+  submitAssignUser() {
+    if (!this.assignUserId || !this.assignSiteId) {
+      alert(this.langService.t('signup_validation'));
+      return;
+    }
+    const user = this.pendingUsers().find((u) => u.id === this.assignUserId);
+    const workerId = user?.role === 'LABOUR' ? this.assignWorkerId : undefined;
+    if (user?.role === 'LABOUR' && !workerId) {
+      alert(this.langService.t('select_worker_required'));
+      return;
+    }
+
+    this.authService.assignUserSite(this.assignUserId, this.assignSiteId, workerId).subscribe({
+      next: () => {
+        alert(this.langService.t('assign_site_success'));
+        this.closeAssignUserModal();
+      },
+      error: (err) => alert(err.error?.message || 'Failed to assign user'),
+    });
+  }
+
   submitPayment() {
     if (!this.payFormWorkerId || this.payFormAmount <= 0) {
       alert('Please select a worker and specify an amount.');
@@ -180,6 +270,14 @@ export class Tab1Page implements OnInit {
   getOthersPercent(site: ConstructionSite): number {
     if (!site.totalExpenses) return 0;
     return site.otherExpenses / site.totalExpenses;
+  }
+
+  selectedAssignUser() {
+    return this.pendingUsers().find((u) => u.id === this.assignUserId);
+  }
+
+  assignSiteWorkers() {
+    return this.dataService.workers().filter((w) => w.siteId === this.assignSiteId);
   }
 
   formatCurrency(value: number): string {

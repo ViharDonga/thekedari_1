@@ -1,76 +1,138 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { JwtPayload } from './auth.service';
 
 @Injectable()
 export class ApiService {
-  private todayString = '2026-06-02';
-
-  // Base values for expenses from original static mock data setup
-  private baseWages = { 'site-1': 318000, 'site-2': 178000, 'site-3': 448000 };
-  private baseMaterials = { 'site-1': 890000, 'site-2': 420000, 'site-3': 1200000 };
+  private get todayString(): string {
+    return new Date().toISOString().split('T')[0];
+  }
 
   constructor(private prisma: PrismaService) {}
 
+  private assertSiteAccess(user: JwtPayload, siteId: string) {
+    if (user.role === 'ADMIN') return;
+    if (user.siteId !== siteId) {
+      throw new ForbiddenException('You do not have access to this site');
+    }
+  }
+
+  private filterBySite<T extends { siteId: string }>(items: T[], user: JwtPayload): T[] {
+    if (user.role === 'ADMIN') return items;
+    if (!user.siteId) return [];
+    return items.filter((item) => item.siteId === user.siteId);
+  }
+
+  private filterWorkersByRole<T extends { id: string; siteId: string }>(workers: T[], user: JwtPayload): T[] {
+    if (user.role === 'ADMIN') return workers;
+    if (user.role === 'LABOUR' && user.workerId) {
+      return workers.filter((w) => w.id === user.workerId);
+    }
+    return this.filterBySite(workers, user);
+  }
+
   // --- GET ALL DATA ---
-  async getSites() {
-    return this.prisma.constructionSite.findMany({
+  async getSites(user: JwtPayload) {
+    const sites = await this.prisma.constructionSite.findMany({
       orderBy: { id: 'asc' },
     });
+    if (user.role === 'ADMIN') return sites;
+    if (user.siteId) return sites.filter((s) => s.id === user.siteId);
+    return [];
   }
 
-  async getWorkers() {
-    return this.prisma.worker.findMany({
+  async addSite(
+    data: { name: string; location: string; budget: number; supervisorName: string },
+    _user: JwtPayload,
+  ) {
+    return this.prisma.constructionSite.create({
+      data: {
+        name: data.name,
+        location: data.location,
+        budget: data.budget,
+        supervisorName: data.supervisorName,
+        spentWages: 0,
+        spentMaterials: 0,
+        spentRentals: 0,
+        otherExpenses: 0,
+        totalExpenses: 0,
+      },
+    });
+  }
+
+  async getWorkers(user: JwtPayload) {
+    const workers = await this.prisma.worker.findMany({
       orderBy: { name: 'asc' },
     });
+    return this.filterWorkersByRole(workers, user);
   }
 
-  async getMaterials() {
-    return this.prisma.materialInventory.findMany({
+  async getMaterials(user: JwtPayload) {
+    const materials = await this.prisma.materialInventory.findMany({
       orderBy: { name: 'asc' },
     });
+    return this.filterBySite(materials, user);
   }
 
-  async getDeliveries() {
-    return this.prisma.materialDelivery.findMany({
+  async getDeliveries(user: JwtPayload) {
+    const deliveries = await this.prisma.materialDelivery.findMany({
       orderBy: { date: 'desc' },
     });
+    return this.filterBySite(deliveries, user);
   }
 
-  async getTransactions() {
-    return this.prisma.transaction.findMany({
+  async getTransactions(user: JwtPayload) {
+    const transactions = await this.prisma.transaction.findMany({
       orderBy: { date: 'desc' },
     });
+    if (user.role === 'LABOUR' && user.workerId) {
+      return transactions.filter((t) => t.workerId === user.workerId);
+    }
+    return this.filterBySite(transactions, user);
   }
 
-  async getAttendanceRecords() {
-    return this.prisma.attendanceRecord.findMany({
+  async getAttendanceRecords(user: JwtPayload) {
+    const records = await this.prisma.attendanceRecord.findMany({
       orderBy: { date: 'desc' },
     });
+    if (user.role === 'LABOUR' && user.workerId) {
+      return records.filter((r) => r.workerId === user.workerId);
+    }
+    return this.filterBySite(records, user);
   }
 
-  async getRentals() {
-    return this.prisma.rentalMaterial.findMany({
+  async getRentals(user: JwtPayload) {
+    const rentals = await this.prisma.rentalMaterial.findMany({
       orderBy: { startDate: 'desc' },
     });
+    return this.filterBySite(rentals, user);
   }
 
-  async getBookings() {
-    return this.prisma.labourBooking.findMany({
+  async getBookings(user: JwtPayload) {
+    const bookings = await this.prisma.labourBooking.findMany({
       orderBy: { bookingDate: 'desc' },
     });
+    if (user.role === 'LABOUR' && user.workerId) {
+      return bookings.filter((b) => b.workerId === user.workerId);
+    }
+    return this.filterBySite(bookings, user);
   }
 
   // --- ACTIONS ---
 
   // Add Worker
-  async addWorker(data: {
-    name: string;
-    role: string;
-    dailyRate: number;
-    siteId: string;
-    phone: string;
-    employmentType: string;
-  }) {
+  async addWorker(
+    data: {
+      name: string;
+      role: string;
+      dailyRate: number;
+      siteId: string;
+      phone: string;
+      employmentType: string;
+    },
+    user: JwtPayload,
+  ) {
+    this.assertSiteAccess(user, data.siteId);
     const avatar = `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000)}?w=150`;
     const statusToday = data.employmentType === 'Permanent' ? 'Not Marked' : 'Not Called';
 
@@ -93,10 +155,11 @@ export class ApiService {
   }
 
   // Update Worker Attendance
-  async updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date?: string) {
+  async updateWorkerAttendance(workerId: string, status: string, overtimeHours: number, date: string | undefined, user: JwtPayload) {
     const targetDate = date || this.todayString;
     const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
     if (!worker) throw new Error('Worker not found');
+    this.assertSiteAccess(user, worker.siteId);
 
     // Handle Attendance Record
     const existingRecord = await this.prisma.attendanceRecord.findFirst({
@@ -163,9 +226,10 @@ export class ApiService {
   }
 
   // Pay Worker
-  async payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment') {
+  async payWorker(workerId: string, amount: number, paymentMode: string, type: 'Wage Payment' | 'Advance Payment', user: JwtPayload) {
     const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
     if (!worker) throw new Error('Worker not found');
+    this.assertSiteAccess(user, worker.siteId);
 
     // Create Transaction
     const transaction = await this.prisma.transaction.create({
@@ -200,9 +264,10 @@ export class ApiService {
   }
 
   // Delete Advance payment
-  async deleteAdvanceTransaction(txId: string) {
+  async deleteAdvanceTransaction(txId: string, user: JwtPayload) {
     const tx = await this.prisma.transaction.findUnique({ where: { id: txId } });
     if (!tx) throw new Error('Transaction not found');
+    this.assertSiteAccess(user, tx.siteId);
 
     const worker = await this.prisma.worker.findUnique({ where: { id: tx.workerId } });
     if (worker) {
@@ -220,15 +285,19 @@ export class ApiService {
   }
 
   // Add Rental Material
-  async addRentalMaterial(data: {
-    name: string;
-    size: string;
-    quantity: number;
-    ratePerDay: number;
-    supplierName: string;
-    startDate: string;
-    siteId: string;
-  }) {
+  async addRentalMaterial(
+    data: {
+      name: string;
+      size: string;
+      quantity: number;
+      ratePerDay: number;
+      supplierName: string;
+      startDate: string;
+      siteId: string;
+    },
+    user: JwtPayload,
+  ) {
+    this.assertSiteAccess(user, data.siteId);
     const rental = await this.prisma.rentalMaterial.create({
       data: {
         siteId: data.siteId,
@@ -246,9 +315,10 @@ export class ApiService {
   }
 
   // Return Rental Material
-  async returnRentalMaterial(rentalId: string, endDate: string) {
+  async returnRentalMaterial(rentalId: string, endDate: string, user: JwtPayload) {
     const rental = await this.prisma.rentalMaterial.findUnique({ where: { id: rentalId } });
     if (!rental) throw new Error('Rental not found');
+    this.assertSiteAccess(user, rental.siteId);
 
     const updatedRental = await this.prisma.rentalMaterial.update({
       where: { id: rentalId },
@@ -260,9 +330,10 @@ export class ApiService {
   }
 
   // Delete Rental Material
-  async deleteRentalMaterial(rentalId: string) {
+  async deleteRentalMaterial(rentalId: string, user: JwtPayload) {
     const rental = await this.prisma.rentalMaterial.findUnique({ where: { id: rentalId } });
     if (!rental) throw new Error('Rental not found');
+    this.assertSiteAccess(user, rental.siteId);
 
     await this.prisma.rentalMaterial.delete({ where: { id: rentalId } });
     await this.recalculateSiteExpenses(rental.siteId);
@@ -277,7 +348,9 @@ export class ApiService {
     quantity: number,
     unit: string,
     ratePerUnit: number,
+    user: JwtPayload,
   ) {
+    this.assertSiteAccess(user, siteId);
     // 1. Create delivery log
     const delivery = await this.prisma.materialDelivery.create({
       data: {
@@ -332,13 +405,17 @@ export class ApiService {
   }
 
   // Add Labour Booking
-  async addLabourBooking(data: {
-    workerId: string;
-    siteId: string;
-    bookingDate: string;
-    dailyRate: number;
-    remarks: string;
-  }) {
+  async addLabourBooking(
+    data: {
+      workerId: string;
+      siteId: string;
+      bookingDate: string;
+      dailyRate: number;
+      remarks: string;
+    },
+    user: JwtPayload,
+  ) {
+    this.assertSiteAccess(user, data.siteId);
     const worker = await this.prisma.worker.findUnique({ where: { id: data.workerId } });
     const site = await this.prisma.constructionSite.findUnique({ where: { id: data.siteId } });
     if (!worker || !site) throw new Error('Worker or Site not found');
@@ -359,7 +436,10 @@ export class ApiService {
   }
 
   // Cancel Labour Booking
-  async cancelLabourBooking(bookingId: string) {
+  async cancelLabourBooking(bookingId: string, user: JwtPayload) {
+    const booking = await this.prisma.labourBooking.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new Error('Booking not found');
+    this.assertSiteAccess(user, booking.siteId);
     await this.prisma.labourBooking.delete({ where: { id: bookingId } });
     return { success: true };
   }
@@ -395,16 +475,14 @@ export class ApiService {
       where: { siteId },
     });
     const wageLogsTotal = attendanceRecords.reduce((sum, r) => sum + r.wageEarned, 0);
-    const baseSiteWage = this.baseWages[siteId] || 0;
-    const spentWages = baseSiteWage + wageLogsTotal;
+    const spentWages = wageLogsTotal;
 
     // 2. Recalculate Materials spent
     const deliveries = await this.prisma.materialDelivery.findMany({
       where: { siteId, status: 'Delivered' },
     });
     const deliveryTotal = deliveries.reduce((sum, d) => sum + d.totalAmount, 0);
-    const baseSiteMaterial = this.baseMaterials[siteId] || 0;
-    const spentMaterials = baseSiteMaterial + deliveryTotal;
+    const spentMaterials = deliveryTotal;
 
     // 3. Recalculate Rentals spent
     const rentals = await this.prisma.rentalMaterial.findMany({

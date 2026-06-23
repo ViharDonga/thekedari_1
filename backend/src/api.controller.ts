@@ -1,52 +1,139 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiService } from './api.service';
+import { AuthService } from './auth.service';
+import { AuthGuard } from './auth.guard';
+import { RolesGuard } from './roles.guard';
+import { Roles } from './roles.decorator';
+import { CurrentUser } from './current-user.decorator';
+import { JwtPayload } from './auth.service';
 
 @Controller('api')
 export class ApiController {
-  constructor(private readonly apiService: ApiService) {}
+  constructor(
+    private readonly apiService: ApiService,
+    private readonly authService: AuthService,
+  ) {}
+
+  @Post('auth/login')
+  login(@Body() body: { username: string; password: string }) {
+    return this.authService.login(body.username, body.password);
+  }
+
+  @Post('auth/register')
+  register(
+    @Body()
+    body: {
+      username: string;
+      password: string;
+      name: string;
+      role: 'SUPERVISOR' | 'LABOUR';
+    },
+  ) {
+    return this.authService.register(body);
+  }
+
+  @Get('users')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  listUsers() {
+    return this.authService.listUsers();
+  }
+
+  @Patch('users/:id/assign-site')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  assignUserSite(
+    @Param('id') id: string,
+    @Body() body: { siteId: string; workerId?: string },
+  ) {
+    return this.authService.assignUserSite(id, body.siteId, body.workerId);
+  }
+
+  @Get('public/sites')
+  getPublicSites() {
+    return this.authService.getPublicSites();
+  }
+
+  @Get('public/workers/:siteId')
+  getPublicWorkersBySite(@Param('siteId') siteId: string) {
+    return this.authService.getPublicWorkers(siteId);
+  }
+
+  @Get('auth/me')
+  @UseGuards(AuthGuard)
+  getProfile(@CurrentUser() user: JwtPayload) {
+    return this.authService.getProfile(user.sub);
+  }
 
   @Get('sites')
-  getSites() {
-    return this.apiService.getSites();
+  @UseGuards(AuthGuard)
+  getSites(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getSites(user);
+  }
+
+  @Post('sites')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  addSite(
+    @CurrentUser() user: JwtPayload,
+    @Body()
+    body: {
+      name: string;
+      location: string;
+      budget: number;
+      supervisorName: string;
+    },
+  ) {
+    return this.apiService.addSite(body, user);
   }
 
   @Get('workers')
-  getWorkers() {
-    return this.apiService.getWorkers();
+  @UseGuards(AuthGuard)
+  getWorkers(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getWorkers(user);
   }
 
   @Get('materials')
-  getMaterials() {
-    return this.apiService.getMaterials();
+  @UseGuards(AuthGuard)
+  getMaterials(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getMaterials(user);
   }
 
   @Get('deliveries')
-  getDeliveries() {
-    return this.apiService.getDeliveries();
+  @UseGuards(AuthGuard)
+  getDeliveries(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getDeliveries(user);
   }
 
   @Get('transactions')
-  getTransactions() {
-    return this.apiService.getTransactions();
+  @UseGuards(AuthGuard)
+  getTransactions(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getTransactions(user);
   }
 
   @Get('attendance')
-  getAttendanceRecords() {
-    return this.apiService.getAttendanceRecords();
+  @UseGuards(AuthGuard)
+  getAttendanceRecords(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getAttendanceRecords(user);
   }
 
   @Get('rentals')
-  getRentals() {
-    return this.apiService.getRentals();
+  @UseGuards(AuthGuard)
+  getRentals(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getRentals(user);
   }
 
   @Get('bookings')
-  getBookings() {
-    return this.apiService.getBookings();
+  @UseGuards(AuthGuard)
+  getBookings(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getBookings(user);
   }
 
   @Post('workers')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
   addWorker(
+    @CurrentUser() user: JwtPayload,
     @Body()
     body: {
       name: string;
@@ -57,11 +144,14 @@ export class ApiController {
       employmentType: string;
     },
   ) {
-    return this.apiService.addWorker(body);
+    return this.apiService.addWorker(body, user);
   }
 
   @Patch('attendance')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
   updateWorkerAttendance(
+    @CurrentUser() user: JwtPayload,
     @Body()
     body: {
       workerId: string;
@@ -70,11 +160,14 @@ export class ApiController {
       date?: string;
     },
   ) {
-    return this.apiService.updateWorkerAttendance(body.workerId, body.status, body.overtimeHours, body.date);
+    return this.apiService.updateWorkerAttendance(body.workerId, body.status, body.overtimeHours, body.date, user);
   }
 
   @Post('payments')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
   payWorker(
+    @CurrentUser() user: JwtPayload,
     @Body()
     body: {
       workerId: string;
@@ -83,16 +176,21 @@ export class ApiController {
       type: 'Wage Payment' | 'Advance Payment';
     },
   ) {
-    return this.apiService.payWorker(body.workerId, body.amount, body.paymentMode, body.type);
+    return this.apiService.payWorker(body.workerId, body.amount, body.paymentMode, body.type, user);
   }
 
   @Delete('transactions/:id')
-  deleteAdvanceTransaction(@Param('id') id: string) {
-    return this.apiService.deleteAdvanceTransaction(id);
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  deleteAdvanceTransaction(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.apiService.deleteAdvanceTransaction(id, user);
   }
 
   @Post('rentals')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
   addRentalMaterial(
+    @CurrentUser() user: JwtPayload,
     @Body()
     body: {
       name: string;
@@ -104,24 +202,32 @@ export class ApiController {
       siteId: string;
     },
   ) {
-    return this.apiService.addRentalMaterial(body);
+    return this.apiService.addRentalMaterial(body, user);
   }
 
   @Patch('rentals/:id/return')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
   returnRentalMaterial(
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() body: { endDate: string },
   ) {
-    return this.apiService.returnRentalMaterial(id, body.endDate);
+    return this.apiService.returnRentalMaterial(id, body.endDate, user);
   }
 
   @Delete('rentals/:id')
-  deleteRentalMaterial(@Param('id') id: string) {
-    return this.apiService.deleteRentalMaterial(id);
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  deleteRentalMaterial(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.apiService.deleteRentalMaterial(id, user);
   }
 
   @Post('deliveries')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
   receiveMaterial(
+    @CurrentUser() user: JwtPayload,
     @Body()
     body: {
       siteId: string;
@@ -139,11 +245,15 @@ export class ApiController {
       body.quantity,
       body.unit,
       body.ratePerUnit,
+      user,
     );
   }
 
   @Post('bookings')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
   addLabourBooking(
+    @CurrentUser() user: JwtPayload,
     @Body()
     body: {
       workerId: string;
@@ -153,11 +263,13 @@ export class ApiController {
       remarks: string;
     },
   ) {
-    return this.apiService.addLabourBooking(body);
+    return this.apiService.addLabourBooking(body, user);
   }
 
   @Delete('bookings/:id')
-  cancelLabourBooking(@Param('id') id: string) {
-    return this.apiService.cancelLabourBooking(id);
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  cancelLabourBooking(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.apiService.cancelLabourBooking(id, user);
   }
 }

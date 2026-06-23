@@ -17,20 +17,22 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <app-pending-assignment></app-pending-assignment>
+
   <!-- Decorative Glow -->
   <div style="position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(48,209,88,0.05) 0%, rgba(0,0,0,0) 70%); top: 50px; right: -50px; pointer-events: none; z-index: -1;"></div>
 
-  <div class="ion-padding" style="padding-top: 8px;">
+  <div class="ion-padding" style="padding-top: 8px;" *ngIf="!authService.needsSiteAssignment()">
     
     <!-- Sub-tab segment bar -->
     <ion-segment [value]="activeLabourTab()" (ionChange)="activeLabourTab.set($any($event.detail.value))" style="margin-bottom: 16px; --background: rgba(30, 33, 45, 0.4); border-radius: 12px; padding: 4px;">
       <ion-segment-button value="roster">
         <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('sub_tab_roster') }}</ion-label>
       </ion-segment-button>
-      <ion-segment-button value="bookings">
+      <ion-segment-button value="bookings" *ngIf="!authService.isLabour()">
         <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('sub_tab_bookings') }}</ion-label>
       </ion-segment-button>
-      <ion-segment-button value="payouts_ledger">
+      <ion-segment-button value="payouts_ledger" *ngIf="!authService.isLabour()">
         <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('sub_tab_daybook') }}</ion-label>
       </ion-segment-button>
     </ion-segment>
@@ -557,7 +559,7 @@
   </ion-modal>
 
   <!-- FAB to Add Labour (only visible in roster sub-tab) -->
-  <ion-fab slot="fixed" vertical="bottom" horizontal="end" *ngIf="activeLabourTab() === 'roster'">
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end" *ngIf="activeLabourTab() === 'roster' && !authService.isLabour()">
     <ion-fab-button (click)="openAddWorkerModal()" color="primary" style="--box-shadow: 0 4px 16px rgba(48,209,88,0.3);">
       <ion-icon name="person-add" style="font-size: 22px; color: #000000;"></ion-icon>
     </ion-fab-button>
