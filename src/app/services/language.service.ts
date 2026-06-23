@@ -207,6 +207,9 @@ export class LanguageService {
     'download_app_banner_title': { en: 'Get the Android App!', hi: 'एंड्रॉइड ऐप डाउनलोड करें!', gu: 'એન્ડ્રોઇડ એપ ડાઉનલોડ કરો!' },
     'download_app_banner_desc': { en: 'Download our official mobile app for a faster and smoother experience on-site.', hi: 'साइट पर तेज़ और आसान अनुभव के लिए हमारा आधिकारिक मोबाइल ऐप डाउनलोड करें।', gu: 'સાઇટ પર વધુ ઝડપી और आसान अनुभव के लिए हमारी सहेजें ऐप डाउनलोड करें।' },
     'download_now': { en: 'Download Now', hi: 'अभी डाउनलोड करें', gu: 'હમણાં ડાઉનલોડ કરો' },
+    'update_available_title': { en: 'App update available', hi: 'ऐप अपडेट उपलब्ध', gu: 'એપ અપડેટ ઉપલબ્ધ' },
+    'update_available_desc': { en: 'A new version is ready. Download and install to get the latest features.', hi: 'नया संस्करण तैयार है। नवीनतम सुविधाओं के लिए डाउनलोड करके इंस्टॉल करें।', gu: 'નવું વર્ઝન તૈયાર છે. નવીનતમ સુવિધાઓ માટે ડાઉનલોડ કરી ઇન્સ્ટોલ કરો.' },
+    'update_now': { en: 'Update Now', hi: 'अभी अपडेट करें', gu: 'હમણાં અપડેટ કરો' },
 
     // Login & Auth
     'login_title': { en: 'Sign In', hi: 'लॉग इन करें', gu: 'લોગ ઇન કરો' },

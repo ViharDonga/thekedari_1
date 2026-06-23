@@ -11,6 +11,7 @@ import { close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, down
 import { LanguageService, SupportedLanguage } from '../services/language.service';
 import { AuthService } from '../services/auth.service';
 import { environment } from '../../environments/environment';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-settings-modal',
@@ -182,7 +183,7 @@ import { environment } from '../../environments/environment';
       <!-- App Version Info -->
       <div class="glass-panel" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ion-color-medium);">
         <span>{{ langService.t('app_version') }}</span>
-        <span>v1.2.0 (Stable)</span>
+        <span>v{{ appVersion }}</span>
       </div>
 
       <!-- Save Button -->
@@ -197,6 +198,7 @@ export class SettingsModalComponent {
   public authService = inject(AuthService);
   public isNativeApp = Capacitor.isNativePlatform();
   public apkDownloadUrl = `${environment.webUrl}/download`;
+  public appVersion = environment.appVersion;
 
   @Output() dismiss = new EventEmitter<void>();
 

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { version, versionCode } = require('./generate-version');
 
 let base =
   process.env.API_URL ||
@@ -14,9 +15,11 @@ const content = `export const environment = {
   production: true,
   apiUrl: '${apiUrl}',
   webUrl: '${webUrl}',
+  appVersion: '${version}',
+  versionCode: ${versionCode},
 };
 `;
 
 const out = path.join(__dirname, '..', 'src', 'environments', 'environment.prod.ts');
 fs.writeFileSync(out, content);
-console.log('environment.prod.ts -> apiUrl:', apiUrl);
+console.log('environment.prod.ts -> apiUrl:', apiUrl, 'version:', version);
