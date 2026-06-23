@@ -1,12 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
-const platform_express_1 = require("@nestjs/platform-express");
-const express_1 = require("express");
 const app_module_1 = require("./app.module");
 async function bootstrap() {
-    const expressApp = (0, express_1.default)();
-    const app = await core_1.NestFactory.create(app_module_1.AppModule, new platform_express_1.ExpressAdapter(expressApp));
+    const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const frontendUrl = process.env.FRONTEND_URL;
     const extraOrigins = (process.env.CORS_ORIGINS || '')
         .split(',')
