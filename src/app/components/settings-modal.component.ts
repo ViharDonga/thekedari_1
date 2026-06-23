@@ -11,7 +11,6 @@ import { close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, down
 import { LanguageService, SupportedLanguage } from '../services/language.service';
 import { AuthService } from '../services/auth.service';
 import { environment } from '../../environments/environment';
-import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-settings-modal',
