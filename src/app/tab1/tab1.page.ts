@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Capacitor } from '@capacitor/core';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent, 
   IonList, IonButton, IonIcon, IonSelect, IonSelectOption, IonProgressBar, 
@@ -18,6 +19,7 @@ import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
 import { PendingAssignmentComponent } from '../components/pending-assignment.component';
 import { AuthUser } from '../services/auth.service';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-tab1',
@@ -73,6 +75,7 @@ export class Tab1Page implements OnInit {
   public payFormWorkerId = '';
   public payFormAmount = 0;
   public payFormMode: 'Cash' | 'UPI' | 'Bank Transfer' = 'UPI';
+  public apkDownloadUrl = `${environment.webUrl}/download`;
 
   constructor() {
     addIcons({ 
@@ -83,9 +86,8 @@ export class Tab1Page implements OnInit {
   }
 
   ngOnInit() {
-    const isCapacitor = (window as any).Capacitor !== undefined;
     const isDismissed = localStorage.getItem('android_banner_dismissed') === 'true';
-    if (!isCapacitor && !isDismissed) {
+    if (!Capacitor.isNativePlatform() && !isDismissed) {
       this.showAndroidDownloadBanner.set(true);
     }
   }

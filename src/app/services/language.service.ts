@@ -28,8 +28,11 @@ export class LanguageService {
     'app_title': { en: 'Thekedari', hi: 'ठेकेदारी', gu: 'ઠેકેદારી' },
     'sub_title': { en: 'Smart Contractor Hub', hi: 'स्मार्ट ठेकेदार हब', gu: 'સ્માર્ટ કોન્ટ્રાક્ટર હબ' },
     'tab_dashboard': { en: 'Dashboard', hi: 'डैशबोर्ड', gu: 'ડેશબોર્ડ' },
+    'tab_dashboard_short': { en: 'Home', hi: 'होम', gu: 'હોમ' },
     'tab_labour': { en: 'Labour & Attendance', hi: 'मजदूर और हाजिरी', gu: 'મજૂર અને હાજરી' },
+    'tab_labour_short': { en: 'Labour', hi: 'मजदूर', gu: 'મજૂર' },
     'tab_materials': { en: 'Materials & Site', hi: 'सामग्री और साइट', gu: 'સામગ્રી અને સાઇટ' },
+    'tab_materials_short': { en: 'Stock', hi: 'सामान', gu: 'સ્ટોક' },
     
     // Settings Modal
     'settings_title': { en: 'App Settings', hi: 'ऐप सेटिंग्स', gu: 'એપ સેટિંગ્સ' },
@@ -137,6 +140,7 @@ export class LanguageService {
     
     // Reports and rentals
     'tab_reports': { en: 'Reports', hi: 'रिपोर्ट्स', gu: 'રિપોર્ટસ' },
+    'tab_reports_short': { en: 'Reports', hi: 'रिपोर्ट', gu: 'રિપોર્ટ' },
     'labour_report': { en: 'Labour Report', hi: 'मजदूर रिपोर्ट', gu: 'મજૂર રિપોર્ટ' },
     'rental_materials': { en: 'Rented Materials', hi: 'किराए की सामग्री', gu: 'ભાડાની સામગ્રી' },
     'rent_rate': { en: 'Rent Rate', hi: 'किराया दर', gu: 'ભાડાનો દર' },

@@ -182,7 +182,13 @@ ion-tab-button {
   --color: #8e8e93;
   --color-selected: #ff9f0a;
   font-weight: 500;
-  font-size: 11px;
+  font-size: 10px;
+
+  ion-label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
 }
 
 ion-header ion-toolbar {

@@ -7,7 +7,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:apk": "npm run build && npx cap sync && cd android && gradlew assembleDebug && cd .. && copy /y android\\app\\build\\outputs\\apk\\debug\\app-debug.apk src\\assets\\thekedari.apk",
+    "build:web": "node scripts/generate-env.js && ng build",
+    "build:apk": "node scripts/generate-env.js && node scripts/sync-capacitor-config.js && ng build && npx cap sync android && cd android && gradlew assembleDebug && cd .. && copy /y android\\app\\build\\outputs\\apk\\debug\\app-debug.apk src\\assets\\thekedari.apk",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"

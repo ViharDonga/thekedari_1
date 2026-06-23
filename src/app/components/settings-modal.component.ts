@@ -1,6 +1,7 @@
 import { Component, inject, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Capacitor } from '@capacitor/core';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonIcon, 
   IonButtons, IonToggle
@@ -9,6 +10,7 @@ import { addIcons } from 'ionicons';
 import { close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, downloadOutline, logOut } from 'ionicons/icons';
 import { LanguageService, SupportedLanguage } from '../services/language.service';
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-settings-modal',
@@ -164,14 +166,14 @@ import { AuthService } from '../services/auth.service';
       </div>
 
       <!-- Android App Download -->
-      <div class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
+      <div *ngIf="!isNativeApp" class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
         <h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-primary);">
           Android Application
         </h3>
         <p style="margin: 0 0 12px 0; font-size: 12px; color: var(--ion-color-medium); line-height: 1.4;">
           {{ langService.t('download_app_banner_desc') }}
         </p>
-        <ion-button href="/assets/thekedari.apk" download="thekedari.apk" expand="block" color="secondary" style="--border-radius: 12px; font-weight: 700; height: 40px; margin: 0;">
+        <ion-button [href]="apkDownloadUrl" download="thekedari.apk" expand="block" color="secondary" style="--border-radius: 12px; font-weight: 700; height: 40px; margin: 0;">
           <ion-icon name="logo-android" slot="start" style="font-size: 20px;"></ion-icon>
           {{ langService.t('download_now') }}
         </ion-button>
@@ -193,6 +195,8 @@ import { AuthService } from '../services/auth.service';
 export class SettingsModalComponent {
   public langService = inject(LanguageService);
   public authService = inject(AuthService);
+  public isNativeApp = Capacitor.isNativePlatform();
+  public apkDownloadUrl = `${environment.webUrl}/download`;
 
   @Output() dismiss = new EventEmitter<void>();
 
