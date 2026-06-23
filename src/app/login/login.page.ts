@@ -41,8 +41,13 @@ export class LoginPage {
         this.isLoading.set(false);
         if (err.status === 0) {
           this.errorMessage.set(this.langService.t('backend_offline'));
+        } else if (err.status === 404) {
+          this.errorMessage.set('API not found. Check server URL configuration.');
         } else {
-          this.errorMessage.set(err.error?.message || this.langService.t('login_failed'));
+          const msg = typeof err.error === 'object' && err.error?.message
+            ? err.error.message
+            : this.langService.t('login_failed');
+          this.errorMessage.set(msg);
         }
       },
     });
