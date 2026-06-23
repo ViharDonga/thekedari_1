@@ -19,7 +19,7 @@ import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
 import { PendingAssignmentComponent } from '../components/pending-assignment.component';
 import { AuthUser } from '../services/auth.service';
-import { environment } from '../../environments/environment';
+import { getApkDownloadUrl } from '../utils/apk-url';
 
 @Component({
   selector: 'app-tab1',
@@ -77,7 +77,7 @@ export class Tab1Page implements OnInit {
   public payFormWorkerId = '';
   public payFormAmount = 0;
   public payFormMode: 'Cash' | 'UPI' | 'Bank Transfer' = 'UPI';
-  public apkDownloadUrl = `${environment.apiUrl}/download/apk`;
+  public apkDownloadUrl = getApkDownloadUrl();
 
   constructor() {
     addIcons({ 

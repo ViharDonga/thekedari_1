@@ -11,6 +11,7 @@ import { close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, down
 import { LanguageService, SupportedLanguage } from '../services/language.service';
 import { AuthService } from '../services/auth.service';
 import { environment } from '../../environments/environment';
+import { getApkDownloadUrl } from '../utils/apk-url';
 
 @Component({
   selector: 'app-settings-modal',
@@ -196,7 +197,7 @@ export class SettingsModalComponent {
   public langService = inject(LanguageService);
   public authService = inject(AuthService);
   public isNativeApp = Capacitor.isNativePlatform();
-  public apkDownloadUrl = `${environment.apiUrl}/download/apk`;
+  public apkDownloadUrl = getApkDownloadUrl();
   public appVersion = environment.appVersion;
 
   @Output() dismiss = new EventEmitter<void>();

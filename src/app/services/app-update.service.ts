@@ -2,6 +2,7 @@ import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { getApkDownloadUrl } from '../utils/apk-url';
 import { environment } from '../../environments/environment';
 
 export interface RemoteVersionInfo {
@@ -20,7 +21,7 @@ export class AppUpdateService {
   public updateAvailable = signal(false);
   public latestVersion = signal('');
   public latestVersionCode = signal(0);
-  public apkDownloadUrl = signal(`${environment.apiUrl}/download/apk`);
+  public apkDownloadUrl = signal(getApkDownloadUrl());
   public releaseNotes = signal('');
 
   async checkForUpdate(): Promise<void> {
@@ -41,7 +42,7 @@ export class AppUpdateService {
         this.updateAvailable.set(true);
         this.latestVersion.set(remote.version);
         this.latestVersionCode.set(remote.versionCode);
-        this.apkDownloadUrl.set(remote.apkUrl || `${environment.apiUrl}/download/apk`);
+        this.apkDownloadUrl.set(remote.apkUrl || getApkDownloadUrl());
         this.releaseNotes.set(remote.releaseNotes || '');
       },
       error: () => {
