@@ -78,6 +78,8 @@ export class Tab1Page implements OnInit {
   public payFormAmount = 0;
   public payFormMode: 'Cash' | 'UPI' | 'Bank Transfer' = 'UPI';
   public apkDownloadUrl = getApkDownloadUrl();
+  /** APK promo + download controls only on the website, not inside the installed app. */
+  public isWebApp = !Capacitor.isNativePlatform();
 
   constructor() {
     addIcons({ 
@@ -89,7 +91,7 @@ export class Tab1Page implements OnInit {
 
   ngOnInit() {
     const isDismissed = localStorage.getItem('android_banner_dismissed') === 'true';
-    if (!Capacitor.isNativePlatform() && !isDismissed) {
+    if (this.isWebApp && !isDismissed) {
       this.showAndroidDownloadBanner.set(true);
     }
   }

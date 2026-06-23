@@ -7,15 +7,28 @@
           <ion-icon name="business" color="primary" style="margin-right: 8px; font-size: 26px; flex-shrink: 0;"></ion-icon>
           <span class="text-gradient" style="white-space: nowrap;">{{ langService.t('app_title') }}</span>
         </h1>
-        <ion-button
-          (click)="showSettingsModal.set(true)"
-          fill="clear"
-          color="primary"
-          style="--padding-start: 6px; --padding-end: 6px; margin: 0; flex-shrink: 0;"
-          aria-label="Settings"
-        >
-          <ion-icon name="settings-outline" style="font-size: 24px;"></ion-icon>
-        </ion-button>
+        <div style="display: flex; align-items: center; gap: 0; flex-shrink: 0;">
+          <ion-button
+            *ngIf="isWebApp"
+            [href]="apkDownloadUrl"
+            download="thekedari.apk"
+            fill="clear"
+            color="primary"
+            style="--padding-start: 6px; --padding-end: 6px; margin: 0;"
+            [attr.aria-label]="langService.t('download_now')"
+          >
+            <ion-icon name="download-outline" style="font-size: 24px;"></ion-icon>
+          </ion-button>
+          <ion-button
+            (click)="showSettingsModal.set(true)"
+            fill="clear"
+            color="primary"
+            style="--padding-start: 6px; --padding-end: 6px; margin: 0;"
+            aria-label="Settings"
+          >
+            <ion-icon name="settings-outline" style="font-size: 24px;"></ion-icon>
+          </ion-button>
+        </div>
       </div>
 
       <!-- Row 2: site selector + admin actions -->
@@ -64,7 +77,7 @@
   <div style="position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(48,209,88,0.04) 0%, rgba(0,0,0,0) 70%); bottom: 100px; right: -200px; pointer-events: none; z-index: -1;"></div>
 
   <!-- Android APK Download Promo Banner -->
-  <div *ngIf="showAndroidDownloadBanner()" class="glass-panel bg-gradient-orange" style="padding: 16px; margin: 12px 16px 4px 16px; position: relative; border-left: 4px solid var(--ion-color-primary) !important; border-radius: 14px;">
+  <div *ngIf="isWebApp && showAndroidDownloadBanner()" class="glass-panel bg-gradient-orange" style="padding: 16px; margin: 12px 16px 4px 16px; position: relative; border-left: 4px solid var(--ion-color-primary) !important; border-radius: 14px;">
     <button (click)="dismissAndroidBanner()" style="position: absolute; top: 12px; right: 12px; background: transparent; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
       <ion-icon name="close" style="font-size: 18px; color: var(--ion-color-medium);"></ion-icon>
     </button>
