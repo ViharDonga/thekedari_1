@@ -73,6 +73,16 @@ export interface RentalMaterial {
   supplierName: string;
   startDate: string;
   endDate?: string;
+  isActive: boolean;
+}
+
+export interface OtherExpense {
+  id: string;
+  siteId: string;
+  name: string;
+  amount: number;
+  isActive: boolean;
+  date: string;
 }
 
 export interface Transaction {
@@ -121,6 +131,7 @@ export class DataService {
   public transactions = signal<Transaction[]>([]);
   public attendanceRecords = signal<AttendanceRecord[]>([]);
   public rentals = signal<RentalMaterial[]>([]);
+  public otherExpenseItems = signal<OtherExpense[]>([]);
   public bookings = signal<LabourBooking[]>([]);
 
   public clearData() {
@@ -133,6 +144,7 @@ export class DataService {
     this.transactions.set([]);
     this.attendanceRecords.set([]);
     this.rentals.set([]);
+    this.otherExpenseItems.set([]);
     this.bookings.set([]);
   }
 
@@ -189,8 +201,19 @@ export class DataService {
     });
 
     this.http.get<RentalMaterial[]>(`${this.apiUrl}/rentals`).subscribe({
-      next: (rentals) => this.rentals.set(rentals),
+      next: (rentals) => {
+        this.rentals.set(rentals.map((r) => ({ ...r, isActive: r.isActive !== false })));
+        this.refreshAllSiteExpenses();
+      },
       error: (err) => console.error('Failed to load rentals:', err)
+    });
+
+    this.http.get<OtherExpense[]>(`${this.apiUrl}/other-expenses`).subscribe({
+      next: (items) => {
+        this.otherExpenseItems.set(items.map((e) => ({ ...e, isActive: e.isActive !== false })));
+        this.refreshAllSiteExpenses();
+      },
+      error: (err) => console.error('Failed to load other expenses:', err)
     });
 
     this.http.get<LabourBooking[]>(`${this.apiUrl}/bookings`).subscribe({
@@ -234,7 +257,19 @@ export class DataService {
   });
 
   public activeSiteRentals = computed(() => {
-    return this.rentals().filter(r => r.siteId === this.activeSiteId());
+    return this.rentals().filter(r => r.siteId === this.activeSiteId() && r.isActive);
+  });
+
+  public inactiveSiteRentals = computed(() => {
+    return this.rentals().filter(r => r.siteId === this.activeSiteId() && !r.isActive);
+  });
+
+  public activeSiteOtherExpenses = computed(() => {
+    return this.otherExpenseItems().filter(e => e.siteId === this.activeSiteId() && e.isActive);
+  });
+
+  public inactiveSiteOtherExpenses = computed(() => {
+    return this.otherExpenseItems().filter(e => e.siteId === this.activeSiteId() && !e.isActive);
   });
 
   public todayActiveLabourCount = computed(() => {
@@ -428,7 +463,8 @@ export class DataService {
         quantity,
         ratePerDay,
         supplierName,
-        startDate
+        startDate,
+        isActive: true,
       };
       this.rentals.update(prev => [newRental, ...prev]);
       this.recalculateSiteExpenses(siteId);
@@ -454,21 +490,72 @@ export class DataService {
     }
   }
 
-  public deleteRentalMaterial(rentalId: string) {
+  public setRentalMaterialActive(rentalId: string, isActive: boolean) {
     if (this.isBackendOnline()) {
-      this.http.delete(`${this.apiUrl}/rentals/${rentalId}`).subscribe({
+      this.http.patch(`${this.apiUrl}/rentals/${rentalId}/active`, { isActive }).subscribe({
         next: () => this.loadAllData(),
-        error: (err) => console.error('Failed to delete rental material:', err)
+        error: (err) => console.error('Failed to update rental status:', err)
       });
     } else {
       let siteId = this.activeSiteId();
-      const rentalItem = this.rentals().find(r => r.id === rentalId);
-      if (rentalItem) {
-        siteId = rentalItem.siteId;
-      }
-      this.rentals.update(prev => prev.filter(r => r.id !== rentalId));
+      this.rentals.update(prev => prev.map(r => {
+        if (r.id === rentalId) {
+          siteId = r.siteId;
+          return { ...r, isActive };
+        }
+        return r;
+      }));
       this.recalculateSiteExpenses(siteId);
     }
+  }
+
+  public deleteRentalMaterial(rentalId: string) {
+    this.setRentalMaterialActive(rentalId, false);
+  }
+
+  public addOtherExpense(name: string, amount: number, date?: string) {
+    if (this.isBackendOnline()) {
+      const siteId = this.activeSiteId();
+      this.http.post(`${this.apiUrl}/other-expenses`, { siteId, name, amount, date }).subscribe({
+        next: () => this.loadAllData(),
+        error: (err) => console.error('Failed to add other expense:', err)
+      });
+    } else {
+      const siteId = this.activeSiteId();
+      const item: OtherExpense = {
+        id: `oe-${Date.now()}`,
+        siteId,
+        name,
+        amount,
+        isActive: true,
+        date: date || this.todayString,
+      };
+      this.otherExpenseItems.update(prev => [item, ...prev]);
+      this.recalculateSiteExpenses(siteId);
+    }
+  }
+
+  public updateOtherExpense(expenseId: string, data: { name?: string; amount?: number; isActive?: boolean }) {
+    if (this.isBackendOnline()) {
+      this.http.patch(`${this.apiUrl}/other-expenses/${expenseId}`, data).subscribe({
+        next: () => this.loadAllData(),
+        error: (err) => console.error('Failed to update other expense:', err)
+      });
+    } else {
+      let siteId = this.activeSiteId();
+      this.otherExpenseItems.update(prev => prev.map(e => {
+        if (e.id === expenseId) {
+          siteId = e.siteId;
+          return { ...e, ...data };
+        }
+        return e;
+      }));
+      this.recalculateSiteExpenses(siteId);
+    }
+  }
+
+  public setOtherExpenseActive(expenseId: string, isActive: boolean) {
+    this.updateOtherExpense(expenseId, { isActive });
   }
 
   public receiveMaterial(materialName: string, supplierName: string, quantity: number, unit: string, ratePerUnit: number) {
@@ -521,13 +608,17 @@ export class DataService {
           if (s.id === siteId) {
             const newSpentMaterials = s.spentMaterials + (quantity * ratePerUnit);
             const rentalsTotal = this.rentals()
-              .filter(r => r.siteId === siteId)
+              .filter(r => r.siteId === siteId && r.isActive)
               .reduce((sum, r) => sum + this.calculateRentalCost(r), 0);
+            const otherTotal = this.otherExpenseItems()
+              .filter(e => e.siteId === siteId && e.isActive)
+              .reduce((sum, e) => sum + e.amount, 0);
             return {
               ...s,
               spentMaterials: newSpentMaterials,
               spentRentals: rentalsTotal,
-              totalExpenses: s.spentWages + newSpentMaterials + rentalsTotal + s.otherExpenses
+              otherExpenses: otherTotal,
+              totalExpenses: s.spentWages + newSpentMaterials + rentalsTotal + otherTotal
             };
           }
           return s;
@@ -658,7 +749,6 @@ export class DataService {
       location?: string;
       budget?: number;
       supervisorName?: string;
-      otherExpenses?: number;
     },
   ) {
     if (this.isBackendOnline()) {
@@ -720,8 +810,12 @@ export class DataService {
       .reduce((sum, d) => sum + d.totalAmount, 0);
 
     const rentalsTotal = this.rentals()
-      .filter(r => r.siteId === siteId)
+      .filter(r => r.siteId === siteId && r.isActive)
       .reduce((sum, r) => sum + this.calculateRentalCost(r), 0);
+
+    const otherTotal = this.otherExpenseItems()
+      .filter(e => e.siteId === siteId && e.isActive)
+      .reduce((sum, e) => sum + e.amount, 0);
 
     this.sites.update(prevSites => {
       return prevSites.map(s => {
@@ -731,7 +825,8 @@ export class DataService {
             spentWages: computedWagesExpense,
             spentMaterials: deliveryTotal,
             spentRentals: rentalsTotal,
-            totalExpenses: computedWagesExpense + deliveryTotal + rentalsTotal + s.otherExpenses
+            otherExpenses: otherTotal,
+            totalExpenses: computedWagesExpense + deliveryTotal + rentalsTotal + otherTotal
           };
         }
         return s;

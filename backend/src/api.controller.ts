@@ -104,7 +104,6 @@ export class ApiController {
       location?: string;
       budget?: number;
       supervisorName?: string;
-      otherExpenses?: number;
     },
   ) {
     return this.apiService.updateSite(id, body, user);
@@ -144,6 +143,12 @@ export class ApiController {
   @UseGuards(AuthGuard)
   getRentals(@CurrentUser() user: JwtPayload) {
     return this.apiService.getRentals(user);
+  }
+
+  @Get('other-expenses')
+  @UseGuards(AuthGuard)
+  getOtherExpenses(@CurrentUser() user: JwtPayload) {
+    return this.apiService.getOtherExpenses(user);
   }
 
   @Get('bookings')
@@ -279,6 +284,38 @@ export class ApiController {
   @Roles('ADMIN', 'SUPERVISOR')
   deleteRentalMaterial(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.apiService.deleteRentalMaterial(id, user);
+  }
+
+  @Patch('rentals/:id/active')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  setRentalMaterialActive(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() body: { isActive: boolean },
+  ) {
+    return this.apiService.setRentalMaterialActive(id, body.isActive, user);
+  }
+
+  @Post('other-expenses')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  addOtherExpense(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { siteId: string; name: string; amount: number; date?: string },
+  ) {
+    return this.apiService.addOtherExpense(body, user);
+  }
+
+  @Patch('other-expenses/:id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERVISOR')
+  updateOtherExpense(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() body: { name?: string; amount?: number; isActive?: boolean },
+  ) {
+    return this.apiService.updateOtherExpense(id, body, user);
   }
 
   @Post('deliveries')

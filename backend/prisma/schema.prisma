@@ -42,6 +42,7 @@ model ConstructionSite {
   rentals        RentalMaterial[]
   transactions   Transaction[]
   bookings       LabourBooking[]
+  otherExpenseItems OtherExpense[]
 }
 
 model Worker {
@@ -111,6 +112,17 @@ model RentalMaterial {
   supplierName String
   startDate    String
   endDate      String?
+  isActive     Boolean          @default(true)
+}
+
+model OtherExpense {
+  id       String           @id @default(uuid())
+  siteId   String
+  site     ConstructionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name     String
+  amount   Float
+  isActive Boolean          @default(true)
+  date     String
 }
 
 model Transaction {

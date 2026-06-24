@@ -116,6 +116,13 @@ export class ApiService {
     return this.filterBySite(rentals, user);
   }
 
+  async getOtherExpenses(user: JwtPayload) {
+    const items = await this.prisma.otherExpense.findMany({
+      orderBy: { date: 'desc' },
+    });
+    return this.filterBySite(items, user);
+  }
+
   async getBookings(user: JwtPayload) {
     const bookings = await this.prisma.labourBooking.findMany({
       orderBy: { bookingDate: 'desc' },
@@ -217,7 +224,6 @@ export class ApiService {
       location?: string;
       budget?: number;
       supervisorName?: string;
-      otherExpenses?: number;
     },
     user: JwtPayload,
   ) {
@@ -230,17 +236,11 @@ export class ApiService {
     if (data.location !== undefined) updateData.location = data.location;
     if (data.budget !== undefined) updateData.budget = data.budget;
     if (data.supervisorName !== undefined) updateData.supervisorName = data.supervisorName;
-    if (data.otherExpenses !== undefined) updateData.otherExpenses = data.otherExpenses;
 
     const updated = await this.prisma.constructionSite.update({
       where: { id: siteId },
       data: updateData,
     });
-
-    if (data.otherExpenses !== undefined) {
-      await this.recalculateSiteExpenses(siteId);
-      return this.prisma.constructionSite.findUnique({ where: { id: siteId } });
-    }
 
     return updated;
   }
@@ -441,15 +441,57 @@ export class ApiService {
     return updatedRental;
   }
 
-  // Delete Rental Material
-  async deleteRentalMaterial(rentalId: string, user: JwtPayload) {
+  // Deactivate Rental Material (soft delete)
+  async setRentalMaterialActive(rentalId: string, isActive: boolean, user: JwtPayload) {
     const rental = await this.prisma.rentalMaterial.findUnique({ where: { id: rentalId } });
     if (!rental) throw new Error('Rental not found');
     this.assertSiteAccess(user, rental.siteId);
 
-    await this.prisma.rentalMaterial.delete({ where: { id: rentalId } });
+    const updatedRental = await this.prisma.rentalMaterial.update({
+      where: { id: rentalId },
+      data: { isActive },
+    });
+
     await this.recalculateSiteExpenses(rental.siteId);
-    return { success: true };
+    return updatedRental;
+  }
+
+  async deleteRentalMaterial(rentalId: string, user: JwtPayload) {
+    return this.setRentalMaterialActive(rentalId, false, user);
+  }
+
+  async addOtherExpense(
+    data: { siteId: string; name: string; amount: number; date?: string },
+    user: JwtPayload,
+  ) {
+    this.assertSiteAccess(user, data.siteId);
+    const item = await this.prisma.otherExpense.create({
+      data: {
+        siteId: data.siteId,
+        name: data.name,
+        amount: data.amount,
+        date: data.date || this.todayString,
+      },
+    });
+    await this.recalculateSiteExpenses(data.siteId);
+    return item;
+  }
+
+  async updateOtherExpense(
+    expenseId: string,
+    data: { name?: string; amount?: number; isActive?: boolean },
+    user: JwtPayload,
+  ) {
+    const item = await this.prisma.otherExpense.findUnique({ where: { id: expenseId } });
+    if (!item) throw new Error('Other expense not found');
+    this.assertSiteAccess(user, item.siteId);
+
+    const updated = await this.prisma.otherExpense.update({
+      where: { id: expenseId },
+      data,
+    });
+    await this.recalculateSiteExpenses(item.siteId);
+    return updated;
   }
 
   // Receive Material
@@ -614,16 +656,22 @@ export class ApiService {
     const deliveryTotal = deliveries.reduce((sum, d) => sum + d.totalAmount, 0);
     const spentMaterials = deliveryTotal;
 
-    // 3. Recalculate Rentals spent
+    // 3. Recalculate Rentals spent (active only)
     const rentals = await this.prisma.rentalMaterial.findMany({
-      where: { siteId },
+      where: { siteId, isActive: true },
     });
     const spentRentals = rentals.reduce(
       (sum, r) => sum + this.calculateRentalCost(r.quantity, r.ratePerDay, r.startDate, r.endDate),
       0,
     );
 
-    const totalExpenses = spentWages + spentMaterials + spentRentals + site.otherExpenses;
+    // 4. Recalculate Other expenses from active line items
+    const otherItems = await this.prisma.otherExpense.findMany({
+      where: { siteId, isActive: true },
+    });
+    const otherExpenses = otherItems.reduce((sum, e) => sum + e.amount, 0);
+
+    const totalExpenses = spentWages + spentMaterials + spentRentals + otherExpenses;
 
     await this.prisma.constructionSite.update({
       where: { id: siteId },
@@ -631,6 +679,7 @@ export class ApiService {
         spentWages,
         spentMaterials,
         spentRentals,
+        otherExpenses,
         totalExpenses,
       },
     });

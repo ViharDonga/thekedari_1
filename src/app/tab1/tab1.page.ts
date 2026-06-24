@@ -58,7 +58,6 @@ export class Tab1Page implements OnInit {
   public siteFormLocation = '';
   public siteFormBudget = 0;
   public siteFormSupervisor = '';
-  public siteFormOtherExpenses = 0;
 
   // Form Fields State
   public matFormFlowType: 'Purchase' | 'Rental' = 'Purchase';
@@ -187,7 +186,6 @@ export class Tab1Page implements OnInit {
     this.siteFormLocation = site.location;
     this.siteFormBudget = site.budget;
     this.siteFormSupervisor = site.supervisorName;
-    this.siteFormOtherExpenses = site.otherExpenses;
     this.showEditSiteModal.set(true);
   }
 
@@ -206,7 +204,6 @@ export class Tab1Page implements OnInit {
       location: this.siteFormLocation,
       budget: this.siteFormBudget,
       supervisorName: this.siteFormSupervisor,
-      otherExpenses: this.siteFormOtherExpenses,
     });
     this.closeEditSiteModal();
     alert(this.langService.t('site_updated'));

@@ -83,6 +83,18 @@ export class Tab4Page {
     return this.dataService.workers().filter(w => w.siteId === this.selectedSiteId());
   });
 
+  public selectedSiteRentals = computed(() => {
+    const siteId = this.selectedSite()?.id;
+    if (!siteId) return [];
+    return this.dataService.rentals().filter(r => r.siteId === siteId && r.isActive);
+  });
+
+  public selectedSiteOtherExpenseItems = computed(() => {
+    const siteId = this.selectedSite()?.id;
+    if (!siteId) return [];
+    return this.dataService.otherExpenseItems().filter(e => e.siteId === siteId && e.isActive);
+  });
+
   // Selected worker computed object
   public selectedWorker = computed(() => {
     const workers = this.dataService.workers();

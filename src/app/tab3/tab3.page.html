@@ -43,9 +43,13 @@
         <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-medium); letter-spacing: 0.5px;">{{ langService.t('current_site') }}</span>
         <h4 style="margin: 2px 0 0 0; font-size: 15px; font-weight: 700; color: var(--app-text-color);">{{ dataService.activeSite().name }}</h4>
       </div>
-      <ion-button color="primary" size="small" style="--border-radius: 8px; font-weight: 700;" (click)="openAddModal()">
+      <ion-button *ngIf="activeMaterialsSegment() !== 'other'" color="primary" size="small" style="--border-radius: 8px; font-weight: 700;" (click)="openAddModal()">
         <ion-icon name="add" style="margin-right: 4px;"></ion-icon>
         {{ langService.t('log_delivery') }}
+      </ion-button>
+      <ion-button *ngIf="activeMaterialsSegment() === 'other' && canManage()" color="primary" size="small" style="--border-radius: 8px; font-weight: 700;" (click)="openOtherExpenseModal()">
+        <ion-icon name="add" style="margin-right: 4px;"></ion-icon>
+        {{ langService.t('add_other_expense') }}
       </ion-button>
     </div>
 
@@ -56,6 +60,9 @@
       </ion-segment-button>
       <ion-segment-button value="rentals">
         <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('rental_materials') }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="other">
+        <ion-label style="font-weight: 700; font-size: 13px;">{{ langService.t('other_expenses') }}</ion-label>
       </ion-segment-button>
     </ion-segment>
 
@@ -183,18 +190,80 @@
               ₹{{ item.ratePerDay }}/day
             </span>
             
-            <div style="display: flex; gap: 6px; margin-top: 8px;" class="no-print">
+            <div style="display: flex; gap: 6px; margin-top: 8px;" class="no-print" *ngIf="canManage()">
               <ion-button *ngIf="!item.endDate" color="success" size="small" style="--padding-start: 6px; --padding-end: 6px; --border-radius: 6px; height: 24px; font-size: 9px; margin: 0; font-weight: bold;" (click)="returnRental(item.id)">
                 <ion-icon name="checkmark-done" style="margin-right: 2px;"></ion-icon>
                 {{ langService.t('action_return') }}
               </ion-button>
-              <ion-button color="danger" fill="outline" size="small" style="--padding-start: 6px; --padding-end: 6px; --border-radius: 6px; height: 24px; font-size: 9px; margin: 0;" (click)="deleteRental(item.id)">
+              <ion-button color="danger" fill="outline" size="small" style="--padding-start: 6px; --padding-end: 6px; --border-radius: 6px; height: 24px; font-size: 9px; margin: 0;" (click)="deactivateRental(item.id)">
                 <ion-icon name="trash" style="font-size: 12px;"></ion-icon>
               </ion-button>
             </div>
           </div>
         </div>
       </ion-list>
+
+      <div *ngIf="dataService.inactiveSiteRentals().length > 0" style="margin-top: 20px;">
+        <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 4px;">{{ langService.t('inactive_records') }}</h3>
+        <ion-list lines="none" style="background: transparent; padding: 0;">
+          <div class="glass-item" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; opacity: 0.65;" *ngFor="let item of dataService.inactiveSiteRentals()">
+            <div>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--ion-color-medium);">{{ item.name }}</h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">{{ langService.t('inactive') }} — {{ formatCurrency(dataService.calculateRentalCost(item)) }}</p>
+            </div>
+            <ion-button *ngIf="canManage()" color="medium" fill="outline" size="small" (click)="reactivateRental(item.id)">
+              <ion-icon name="refresh-circle" slot="start"></ion-icon>
+              {{ langService.t('reactivate') }}
+            </ion-button>
+          </div>
+        </ion-list>
+      </div>
+    </div>
+
+    <!-- ==================== 3. OTHER EXPENSES VIEW ==================== -->
+    <div *ngIf="activeMaterialsSegment() === 'other'">
+      <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 4px;">{{ langService.t('other_expenses') }}</h3>
+
+      <div *ngIf="dataService.activeSiteOtherExpenses().length === 0" style="text-align: center; padding: 32px; color: var(--ion-color-medium);">
+        <ion-icon name="alert-circle" style="font-size: 32px; margin-bottom: 8px;"></ion-icon>
+        <p style="margin: 0; font-size: 13px;">{{ langService.t('no_other_expenses') }}</p>
+      </div>
+
+      <ion-list lines="none" style="background: transparent; padding: 0;">
+        <div class="glass-item hover-scale" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" *ngFor="let item of dataService.activeSiteOtherExpenses()">
+          <div style="flex: 1; min-width: 0;">
+            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--app-text-color);">{{ item.name }}</h4>
+            <p style="margin: 2px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">{{ item.date | date:'dd MMM yyyy' }}</p>
+          </div>
+          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; margin-left: 8px;">
+            <span style="font-size: 14px; font-weight: 700; color: var(--app-text-color); font-family: monospace;">{{ formatCurrency(item.amount) }}</span>
+            <div style="display: flex; gap: 6px; margin-top: 8px;" *ngIf="canManage()" class="no-print">
+              <ion-button color="primary" fill="outline" size="small" style="--padding-start: 6px; --padding-end: 6px; height: 24px; margin: 0;" (click)="openEditOtherExpense(item)">
+                <ion-icon name="create-outline" style="font-size: 12px;"></ion-icon>
+              </ion-button>
+              <ion-button color="danger" fill="outline" size="small" style="--padding-start: 6px; --padding-end: 6px; height: 24px; margin: 0;" (click)="deactivateOtherExpense(item.id)">
+                <ion-icon name="trash" style="font-size: 12px;"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </div>
+      </ion-list>
+
+      <div *ngIf="dataService.inactiveSiteOtherExpenses().length > 0" style="margin-top: 20px;">
+        <h3 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-medium); margin: 0 0 12px 4px;">{{ langService.t('inactive_records') }}</h3>
+        <ion-list lines="none" style="background: transparent; padding: 0;">
+          <div class="glass-item" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; opacity: 0.65;" *ngFor="let item of dataService.inactiveSiteOtherExpenses()">
+            <div>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--ion-color-medium);">{{ item.name }}</h4>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--ion-color-medium);">{{ langService.t('inactive') }} — {{ formatCurrency(item.amount) }}</p>
+            </div>
+            <ion-button *ngIf="canManage()" color="medium" fill="outline" size="small" (click)="reactivateOtherExpense(item.id)">
+              <ion-icon name="refresh-circle" slot="start"></ion-icon>
+              {{ langService.t('reactivate') }}
+            </ion-button>
+          </div>
+        </ion-list>
+      </div>
     </div>
   </div>
 
@@ -317,6 +386,70 @@
             <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitDelivery()">
               {{ formFlowType === 'Purchase' ? langService.t('save_receipt') : langService.t('log_rental') }}
             </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: ADD OTHER EXPENSE -->
+  <ion-modal [isOpen]="showOtherExpenseModal()" (didDismiss)="closeOtherExpenseModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('add_other_expense') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeOtherExpenseModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('item_name') }}</label>
+            <ion-input [(ngModel)]="otherExpenseName" [placeholder]="langService.t('item_name_placeholder')" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+          <div style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('amount') }} (₹)</label>
+            <ion-input type="number" [(ngModel)]="otherExpenseAmount" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="closeOtherExpenseModal()">{{ langService.t('cancel') }}</ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitOtherExpense()">{{ langService.t('save') }}</ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL: EDIT OTHER EXPENSE -->
+  <ion-modal [isOpen]="showEditOtherExpenseModal()" (didDismiss)="closeEditOtherExpenseModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ langService.t('edit_other_expense') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeEditOtherExpenseModal()">
+              <ion-icon name="close" style="font-size: 24px; color: var(--ion-color-danger);"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding" style="--background: var(--bg-dark-base);">
+        <div class="glass-panel" style="padding: 20px; margin-top: 10px;">
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('item_name') }}</label>
+            <ion-input [(ngModel)]="editOtherExpenseName" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+          <div style="margin-bottom: 24px;">
+            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('amount') }} (₹)</label>
+            <ion-input type="number" [(ngModel)]="editOtherExpenseAmount" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <ion-button fill="outline" color="medium" style="flex: 1; --border-radius: 12px;" (click)="closeEditOtherExpenseModal()">{{ langService.t('cancel') }}</ion-button>
+            <ion-button color="primary" style="flex: 1.5; --border-radius: 12px; font-weight: 700;" (click)="submitEditOtherExpense()">{{ langService.t('save_changes') }}</ion-button>
           </div>
         </div>
       </ion-content>

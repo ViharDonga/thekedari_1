@@ -2,6 +2,6 @@ export const environment = {
   production: true,
   apiUrl: 'https://thekedari-api.onrender.com/api',
   webUrl: 'https://thekedari-1.onrender.com',
-  appVersion: '1.4.1',
-  versionCode: 10401,
+  appVersion: '1.4.2',
+  versionCode: 10402,
 };

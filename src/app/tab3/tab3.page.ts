@@ -9,10 +9,12 @@ import {
 import { addIcons } from 'ionicons';
 import { 
   cube, add, cart, close, alertCircle, checkmarkCircle, time, 
-  pricetag, business, chevronDown, settingsOutline, trash, checkmarkDone
+  pricetag, business, chevronDown, settingsOutline, trash, checkmarkDone,
+  createOutline, refreshCircle
 } from 'ionicons/icons';
-import { DataService, MaterialInventory, MaterialDelivery } from '../services/data.service';
+import { DataService, MaterialInventory, OtherExpense } from '../services/data.service';
 import { LanguageService } from '../services/language.service';
+import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
 
 @Component({
@@ -31,31 +33,42 @@ import { SettingsModalComponent } from '../components/settings-modal.component';
 export class Tab3Page {
   public dataService = inject(DataService);
   public langService = inject(LanguageService);
+  public authService = inject(AuthService);
 
-  // Tab segment view
-  public activeMaterialsSegment = signal<'stock' | 'rentals'>('stock');
+  public activeMaterialsSegment = signal<'stock' | 'rentals' | 'other'>('stock');
 
-  // Form Modal State
   public showAddModal = signal<boolean>(false);
+  public showOtherExpenseModal = signal<boolean>(false);
+  public showEditOtherExpenseModal = signal<boolean>(false);
   public showSettingsModal = signal<boolean>(false);
-  
+
   public formFlowType: 'Purchase' | 'Rental' = 'Purchase';
   public formMatName = '';
   public formSize = '';
   public formRatePerDay = 0;
   public formStartDate = '';
   public showCustomNameInput = false;
-
   public formSupplierName = '';
   public formQty = 100;
   public formUnit = 'Bags';
   public formRate = 420;
 
+  public otherExpenseName = '';
+  public otherExpenseAmount = 0;
+  public editingOtherExpenseId = '';
+  public editOtherExpenseName = '';
+  public editOtherExpenseAmount = 0;
+
   constructor() {
     addIcons({ 
       cube, add, cart, close, alertCircle, checkmarkCircle, time, 
-      pricetag, business, chevronDown, settingsOutline, trash, checkmarkDone
+      pricetag, business, chevronDown, settingsOutline, trash, checkmarkDone,
+      createOutline, refreshCircle
     });
+  }
+
+  canManage(): boolean {
+    return this.authService.isAdmin() || this.authService.isSupervisor();
   }
 
   onSiteChange(event: any) {
@@ -78,6 +91,61 @@ export class Tab3Page {
 
   closeAddModal() {
     this.showAddModal.set(false);
+  }
+
+  openOtherExpenseModal() {
+    this.otherExpenseName = '';
+    this.otherExpenseAmount = 0;
+    this.showOtherExpenseModal.set(true);
+  }
+
+  closeOtherExpenseModal() {
+    this.showOtherExpenseModal.set(false);
+  }
+
+  submitOtherExpense() {
+    if (!this.otherExpenseName.trim() || this.otherExpenseAmount <= 0) {
+      alert(this.langService.t('other_expense_validation'));
+      return;
+    }
+    this.dataService.addOtherExpense(this.otherExpenseName.trim(), this.otherExpenseAmount);
+    alert(this.langService.t('other_expense_added'));
+    this.closeOtherExpenseModal();
+  }
+
+  openEditOtherExpense(item: OtherExpense) {
+    this.editingOtherExpenseId = item.id;
+    this.editOtherExpenseName = item.name;
+    this.editOtherExpenseAmount = item.amount;
+    this.showEditOtherExpenseModal.set(true);
+  }
+
+  closeEditOtherExpenseModal() {
+    this.showEditOtherExpenseModal.set(false);
+    this.editingOtherExpenseId = '';
+  }
+
+  submitEditOtherExpense() {
+    if (!this.editOtherExpenseName.trim() || this.editOtherExpenseAmount <= 0) {
+      alert(this.langService.t('other_expense_validation'));
+      return;
+    }
+    this.dataService.updateOtherExpense(this.editingOtherExpenseId, {
+      name: this.editOtherExpenseName.trim(),
+      amount: this.editOtherExpenseAmount,
+    });
+    alert(this.langService.t('other_expense_updated'));
+    this.closeEditOtherExpenseModal();
+  }
+
+  deactivateOtherExpense(itemId: string) {
+    if (confirm(this.langService.t('confirm_deactivate_expense'))) {
+      this.dataService.setOtherExpenseActive(itemId, false);
+    }
+  }
+
+  reactivateOtherExpense(itemId: string) {
+    this.dataService.setOtherExpenseActive(itemId, true);
   }
 
   submitDelivery() {
@@ -121,11 +189,14 @@ export class Tab3Page {
     }
   }
 
-  deleteRental(itemId: string) {
-    if (confirm('Are you sure you want to delete this rental record?')) {
-      this.dataService.deleteRentalMaterial(itemId);
-      alert('Rental record deleted.');
+  deactivateRental(itemId: string) {
+    if (confirm(this.langService.t('confirm_deactivate_rental'))) {
+      this.dataService.setRentalMaterialActive(itemId, false);
     }
+  }
+
+  reactivateRental(itemId: string) {
+    this.dataService.setRentalMaterialActive(itemId, true);
   }
 
   isLowStock(item: MaterialInventory): boolean {

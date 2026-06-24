@@ -259,7 +259,7 @@
           <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 4px;">
             <span style="display: flex; align-items: center; color: var(--app-text-color);">
               <span style="width: 8px; height: 8px; background: var(--ion-color-tertiary); border-radius: 50%; margin-right: 8px;"></span>
-              {{ langService.t('machinery_misc') }}
+              {{ langService.t('other_expenses') }}
             </span>
             <span style="color: var(--app-text-color); font-weight: 600;">
               {{ formatCurrency(dataService.activeSite().otherExpenses) }}
@@ -586,11 +586,6 @@
           <div style="margin-bottom: 16px;">
             <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('site_budget') }}</label>
             <ion-input type="number" [(ngModel)]="siteFormBudget" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--ion-color-primary);">{{ langService.t('other_expenses') }}</label>
-            <ion-input type="number" [(ngModel)]="siteFormOtherExpenses" style="--background: rgba(30, 33, 45, 0.6); --border-radius: 10px; border: 1px solid var(--border-light); margin-top: 6px; color: var(--app-text-color); padding: 10px 14px; font-size: 15px;"></ion-input>
           </div>
 
           <div style="margin-bottom: 24px;">
