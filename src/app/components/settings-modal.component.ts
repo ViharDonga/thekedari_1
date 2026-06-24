@@ -9,9 +9,8 @@ import { addIcons } from 'ionicons';
 import { close, checkmarkCircle, shieldCheckmark, sunny, moon, phonePortraitOutline, logOut } from 'ionicons/icons';
 import { LanguageService, SupportedLanguage } from '../services/language.service';
 import { AuthService } from '../services/auth.service';
-import { PwaInstallService } from '../services/pwa-install.service';
+import { ApkInstallService } from '../services/apk-install.service';
 import { environment } from '../../environments/environment';
-import { AlertController } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-settings-modal',
@@ -166,8 +165,8 @@ import { AlertController } from '@ionic/angular/standalone';
         </div>
       </div>
 
-      <!-- Install on phone (Add to Home screen) -->
-      <div *ngIf="pwaInstall.shouldOfferInstall()" class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
+      <!-- Install Android APK -->
+      <div *ngIf="apkInstall.shouldOfferApk()" class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
         <h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-primary);">
           {{ langService.t('install_app_banner_title') }}
         </h3>
@@ -175,9 +174,14 @@ import { AlertController } from '@ionic/angular/standalone';
           {{ langService.t('install_app_banner_desc') }}
         </p>
         <p style="margin: 0 0 12px 0; font-size: 11px; color: var(--ion-color-medium); line-height: 1.4;">
-          {{ langService.t(installStepsKey()) }}
+          {{ langService.t('install_app_steps') }}
         </p>
-        <ion-button expand="block" color="secondary" style="--border-radius: 12px; font-weight: 700; height: 40px; margin: 0;" (click)="installApp()">
+        <ion-button
+          expand="block"
+          color="secondary"
+          style="--border-radius: 12px; font-weight: 700; height: 40px; margin: 0;"
+          [href]="apkInstall.getDownloadUrl()"
+        >
           <ion-icon name="phone-portrait-outline" slot="start" style="font-size: 20px;"></ion-icon>
           {{ langService.t('install_app_now') }}
         </ion-button>
@@ -199,38 +203,13 @@ import { AlertController } from '@ionic/angular/standalone';
 export class SettingsModalComponent {
   public langService = inject(LanguageService);
   public authService = inject(AuthService);
-  public pwaInstall = inject(PwaInstallService);
-  private alertCtrl = inject(AlertController);
+  public apkInstall = inject(ApkInstallService);
   public appVersion = environment.appVersion;
 
   @Output() dismiss = new EventEmitter<void>();
 
   constructor() {
     addIcons({ close, checkmarkCircle, shieldCheckmark, sunny, moon, phonePortraitOutline, logOut });
-  }
-
-  installStepsKey(): string {
-    if (this.pwaInstall.isIos()) {
-      return 'install_app_steps_ios';
-    }
-    if (this.pwaInstall.isMobileWeb()) {
-      return 'install_app_steps_android';
-    }
-    return 'install_app_steps_desktop';
-  }
-
-  async installApp() {
-    const outcome = await this.pwaInstall.promptInstall();
-    if (outcome !== 'unavailable') {
-      return;
-    }
-
-    const alert = await this.alertCtrl.create({
-      header: this.langService.t('install_app_banner_title'),
-      message: this.langService.t(this.installStepsKey()),
-      buttons: [this.langService.t('done')],
-    });
-    await alert.present();
   }
 
   setLang(lang: SupportedLanguage) {

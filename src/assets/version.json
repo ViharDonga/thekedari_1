@@ -1,8 +1,8 @@
 {
-  "version": "1.4.0",
-  "versionCode": 10400,
-  "apkUrl": "https://thekedari-1.onrender.com/assets/thekedari.apk?v=10400",
+  "version": "1.4.1",
+  "versionCode": 10401,
+  "apkUrl": "https://thekedari-1.onrender.com/assets/thekedari.apk?v=10401",
   "webUrl": "https://thekedari-1.onrender.com",
   "releaseNotes": "Latest features and fixes from Thekedari",
-  "builtAt": "2026-06-24T03:45:45.599Z"
+  "builtAt": "2026-06-24T05:45:25.739Z"
 }

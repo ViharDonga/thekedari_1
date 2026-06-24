@@ -10,6 +10,15 @@ const root = path.join(__dirname, '..');
 const isWin = process.platform === 'win32';
 const gradle = isWin ? 'gradlew.bat' : './gradlew';
 
+const nodeMajor = parseInt(process.versions.node.split('.')[0], 10);
+if (nodeMajor < 22) {
+  console.error(
+    `build-apk: Node.js ${process.version} is too old. Capacitor requires Node >= 22.\n` +
+      'Fix: nvm use 22   (or install Node 22 LTS from https://nodejs.org)',
+  );
+  process.exit(1);
+}
+
 function run(cmd, opts = {}) {
   console.log(`> ${cmd}`);
   execSync(cmd, { stdio: 'inherit', cwd: opts.cwd || root, env: { ...process.env, ...opts.env } });

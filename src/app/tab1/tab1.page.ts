@@ -18,8 +18,7 @@ import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
 import { PendingAssignmentComponent } from '../components/pending-assignment.component';
 import { AuthUser } from '../services/auth.service';
-import { PwaInstallService } from '../services/pwa-install.service';
-import { AlertController } from '@ionic/angular/standalone';
+import { ApkInstallService } from '../services/apk-install.service';
 
 @Component({
   selector: 'app-tab1',
@@ -77,8 +76,7 @@ export class Tab1Page implements OnInit {
   public payFormWorkerId = '';
   public payFormAmount = 0;
   public payFormMode: 'Cash' | 'UPI' | 'Bank Transfer' = 'UPI';
-  public pwaInstall = inject(PwaInstallService);
-  private alertCtrl = inject(AlertController);
+  public apkInstall = inject(ApkInstallService);
 
   constructor() {
     addIcons({ 
@@ -89,40 +87,19 @@ export class Tab1Page implements OnInit {
   }
 
   ngOnInit() {
-    const isDismissed = localStorage.getItem('pwa_install_banner_dismissed') === 'true';
-    if (this.pwaInstall.shouldOfferInstall() && !isDismissed) {
+    const isDismissed = localStorage.getItem('apk_install_banner_dismissed') === 'true';
+    if (this.apkInstall.shouldOfferApk() && !isDismissed) {
       this.showInstallBanner.set(true);
     }
   }
 
   dismissInstallBanner() {
     this.showInstallBanner.set(false);
-    localStorage.setItem('pwa_install_banner_dismissed', 'true');
+    localStorage.setItem('apk_install_banner_dismissed', 'true');
   }
 
-  installStepsKey(): string {
-    if (this.pwaInstall.isIos()) {
-      return 'install_app_steps_ios';
-    }
-    if (this.pwaInstall.isMobileWeb()) {
-      return 'install_app_steps_android';
-    }
-    return 'install_app_steps_desktop';
-  }
-
-  async installApp() {
-    const outcome = await this.pwaInstall.promptInstall();
-    if (outcome === 'accepted') {
-      this.showInstallBanner.set(false);
-      return;
-    }
-
-    const alert = await this.alertCtrl.create({
-      header: this.langService.t('install_app_banner_title'),
-      message: this.langService.t(this.installStepsKey()),
-      buttons: [this.langService.t('done')],
-    });
-    await alert.present();
+  installApp() {
+    this.apkInstall.downloadApk();
   }
 
   // Event Handlers
