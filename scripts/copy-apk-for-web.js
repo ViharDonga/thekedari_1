@@ -36,4 +36,6 @@ if (source) {
   fs.mkdirSync(path.dirname(apkDest), { recursive: true });
   fs.copyFileSync(source, apkDest);
   console.log('copy-apk-for-web: copied APK → src/assets/thekedari.apk');
+  require('./generate-version');
+  console.log('copy-apk-for-web: refreshed version.json');
 }

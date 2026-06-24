@@ -9,15 +9,14 @@
         </h1>
         <div style="display: flex; align-items: center; gap: 0; flex-shrink: 0;">
           <ion-button
-            *ngIf="isWebApp"
-            [href]="apkDownloadUrl"
-            download="thekedari.apk"
+            *ngIf="pwaInstall.shouldOfferInstall()"
+            (click)="installApp()"
             fill="clear"
             color="primary"
             style="--padding-start: 6px; --padding-end: 6px; margin: 0;"
-            [attr.aria-label]="langService.t('download_now')"
+            [attr.aria-label]="langService.t('install_app_now')"
           >
-            <ion-icon name="download-outline" style="font-size: 24px;"></ion-icon>
+            <ion-icon name="phone-portrait-outline" style="font-size: 24px;"></ion-icon>
           </ion-button>
           <ion-button
             (click)="showSettingsModal.set(true)"
@@ -76,26 +75,29 @@
   <div style="position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,159,10,0.06) 0%, rgba(0,0,0,0) 70%); top: -100px; left: -100px; pointer-events: none; z-index: -1;"></div>
   <div style="position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(48,209,88,0.04) 0%, rgba(0,0,0,0) 70%); bottom: 100px; right: -200px; pointer-events: none; z-index: -1;"></div>
 
-  <!-- Android APK Download Promo Banner -->
-  <div *ngIf="isWebApp && showAndroidDownloadBanner()" class="glass-panel bg-gradient-orange" style="padding: 16px; margin: 12px 16px 4px 16px; position: relative; border-left: 4px solid var(--ion-color-primary) !important; border-radius: 14px;">
-    <button (click)="dismissAndroidBanner()" style="position: absolute; top: 12px; right: 12px; background: transparent; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
+  <!-- Install app (Add to Home screen) -->
+  <div *ngIf="pwaInstall.shouldOfferInstall() && showInstallBanner()" class="glass-panel bg-gradient-orange" style="padding: 16px; margin: 12px 16px 4px 16px; position: relative; border-left: 4px solid var(--ion-color-primary) !important; border-radius: 14px;">
+    <button (click)="dismissInstallBanner()" style="position: absolute; top: 12px; right: 12px; background: transparent; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
       <ion-icon name="close" style="font-size: 18px; color: var(--ion-color-medium);"></ion-icon>
     </button>
     
     <div style="display: flex; align-items: flex-start; gap: 12px; padding-right: 18px;">
       <div style="background: rgba(255, 159, 10, 0.15); padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-        <ion-icon name="logo-android" style="font-size: 26px; color: var(--ion-color-primary);"></ion-icon>
+        <ion-icon name="phone-portrait-outline" style="font-size: 26px; color: var(--ion-color-primary);"></ion-icon>
       </div>
       <div style="flex: 1;">
         <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--app-text-color); line-height: 1.2;">
-          {{ langService.t('download_app_banner_title') }}
+          {{ langService.t('install_app_banner_title') }}
         </h3>
-        <p style="margin: 4px 0 10px 0; font-size: 12px; color: var(--ion-color-medium); line-height: 1.4;">
-          {{ langService.t('download_app_banner_desc') }}
+        <p style="margin: 4px 0 6px 0; font-size: 12px; color: var(--ion-color-medium); line-height: 1.4;">
+          {{ langService.t('install_app_banner_desc') }}
         </p>
-        <ion-button [href]="apkDownloadUrl" download="thekedari.apk" size="small" color="primary" style="font-weight: 700; margin: 0; --border-radius: 8px; --box-shadow: 0 4px 10px rgba(255,159,10,0.3);">
-          <ion-icon name="download-outline" slot="start" style="font-size: 16px;"></ion-icon>
-          {{ langService.t('download_now') }}
+        <p style="margin: 0 0 10px 0; font-size: 11px; color: var(--ion-color-medium); line-height: 1.4;">
+          {{ langService.t(installStepsKey()) }}
+        </p>
+        <ion-button (click)="installApp()" size="small" color="primary" style="font-weight: 700; margin: 0; --border-radius: 8px; --box-shadow: 0 4px 10px rgba(255,159,10,0.3);">
+          <ion-icon name="phone-portrait-outline" slot="start" style="font-size: 16px;"></ion-icon>
+          {{ langService.t('install_app_now') }}
         </ion-button>
       </div>
     </div>

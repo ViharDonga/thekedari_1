@@ -1,17 +1,17 @@
 import { Component, inject, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Capacitor } from '@capacitor/core';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonIcon, 
   IonButtons, IonToggle
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, downloadOutline, logOut } from 'ionicons/icons';
+import { close, checkmarkCircle, shieldCheckmark, sunny, moon, phonePortraitOutline, logOut } from 'ionicons/icons';
 import { LanguageService, SupportedLanguage } from '../services/language.service';
 import { AuthService } from '../services/auth.service';
+import { PwaInstallService } from '../services/pwa-install.service';
 import { environment } from '../../environments/environment';
-import { getApkDownloadUrl } from '../utils/apk-url';
+import { AlertController } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-settings-modal',
@@ -166,17 +166,20 @@ import { getApkDownloadUrl } from '../utils/apk-url';
         </div>
       </div>
 
-      <!-- Android App Download -->
-      <div *ngIf="!isNativeApp" class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
+      <!-- Install on phone (Add to Home screen) -->
+      <div *ngIf="pwaInstall.shouldOfferInstall()" class="glass-panel" style="padding: 16px; margin-bottom: 16px;">
         <h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ion-color-primary);">
-          Android Application
+          {{ langService.t('install_app_banner_title') }}
         </h3>
-        <p style="margin: 0 0 12px 0; font-size: 12px; color: var(--ion-color-medium); line-height: 1.4;">
-          {{ langService.t('download_app_banner_desc') }}
+        <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--ion-color-medium); line-height: 1.4;">
+          {{ langService.t('install_app_banner_desc') }}
         </p>
-        <ion-button [href]="apkDownloadUrl" download="thekedari.apk" expand="block" color="secondary" style="--border-radius: 12px; font-weight: 700; height: 40px; margin: 0;">
-          <ion-icon name="logo-android" slot="start" style="font-size: 20px;"></ion-icon>
-          {{ langService.t('download_now') }}
+        <p style="margin: 0 0 12px 0; font-size: 11px; color: var(--ion-color-medium); line-height: 1.4;">
+          {{ langService.t(installStepsKey()) }}
+        </p>
+        <ion-button expand="block" color="secondary" style="--border-radius: 12px; font-weight: 700; height: 40px; margin: 0;" (click)="installApp()">
+          <ion-icon name="phone-portrait-outline" slot="start" style="font-size: 20px;"></ion-icon>
+          {{ langService.t('install_app_now') }}
         </ion-button>
       </div>
 
@@ -196,14 +199,38 @@ import { getApkDownloadUrl } from '../utils/apk-url';
 export class SettingsModalComponent {
   public langService = inject(LanguageService);
   public authService = inject(AuthService);
-  public isNativeApp = Capacitor.isNativePlatform();
-  public apkDownloadUrl = getApkDownloadUrl();
+  public pwaInstall = inject(PwaInstallService);
+  private alertCtrl = inject(AlertController);
   public appVersion = environment.appVersion;
 
   @Output() dismiss = new EventEmitter<void>();
 
   constructor() {
-    addIcons({ close, checkmarkCircle, shieldCheckmark, sunny, moon, logoAndroid, downloadOutline, logOut });
+    addIcons({ close, checkmarkCircle, shieldCheckmark, sunny, moon, phonePortraitOutline, logOut });
+  }
+
+  installStepsKey(): string {
+    if (this.pwaInstall.isIos()) {
+      return 'install_app_steps_ios';
+    }
+    if (this.pwaInstall.isMobileWeb()) {
+      return 'install_app_steps_android';
+    }
+    return 'install_app_steps_desktop';
+  }
+
+  async installApp() {
+    const outcome = await this.pwaInstall.promptInstall();
+    if (outcome !== 'unavailable') {
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: this.langService.t('install_app_banner_title'),
+      message: this.langService.t(this.installStepsKey()),
+      buttons: [this.langService.t('done')],
+    });
+    await alert.present();
   }
 
   setLang(lang: SupportedLanguage) {

@@ -1,7 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Capacitor } from '@capacitor/core';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent, 
   IonList, IonButton, IonIcon, IonSelect, IonSelectOption, IonProgressBar, 
@@ -11,7 +10,7 @@ import { addIcons } from 'ionicons';
 import { 
   add, cash, cart, calendar, location, wallet, cube, checkmarkCircle, 
   alertCircle, arrowForward, close, people, statsChart, business, settingsOutline,
-  logoAndroid, downloadOutline
+  phonePortraitOutline
 } from 'ionicons/icons';
 import { DataService, ConstructionSite, Worker } from '../services/data.service';
 import { LanguageService } from '../services/language.service';
@@ -19,7 +18,8 @@ import { AuthService } from '../services/auth.service';
 import { SettingsModalComponent } from '../components/settings-modal.component';
 import { PendingAssignmentComponent } from '../components/pending-assignment.component';
 import { AuthUser } from '../services/auth.service';
-import { getApkDownloadUrl } from '../utils/apk-url';
+import { PwaInstallService } from '../services/pwa-install.service';
+import { AlertController } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-tab1',
@@ -47,7 +47,7 @@ export class Tab1Page implements OnInit {
   public showAddSiteModal = signal<boolean>(false);
   public showEditSiteModal = signal<boolean>(false);
   public showAssignUserModal = signal<boolean>(false);
-  public showAndroidDownloadBanner = signal<boolean>(false);
+  public showInstallBanner = signal<boolean>(false);
 
   public pendingUsers = signal<AuthUser[]>([]);
   public assignUserId = '';
@@ -77,28 +77,52 @@ export class Tab1Page implements OnInit {
   public payFormWorkerId = '';
   public payFormAmount = 0;
   public payFormMode: 'Cash' | 'UPI' | 'Bank Transfer' = 'UPI';
-  public apkDownloadUrl = getApkDownloadUrl();
-  /** APK promo + download controls only on the website, not inside the installed app. */
-  public isWebApp = !Capacitor.isNativePlatform();
+  public pwaInstall = inject(PwaInstallService);
+  private alertCtrl = inject(AlertController);
 
   constructor() {
     addIcons({ 
       add, cash, cart, calendar, location, wallet, cube, checkmarkCircle, 
       alertCircle, arrowForward, close, people, statsChart, business, settingsOutline,
-      logoAndroid, downloadOutline
+      phonePortraitOutline
     });
   }
 
   ngOnInit() {
-    const isDismissed = localStorage.getItem('android_banner_dismissed') === 'true';
-    if (this.isWebApp && !isDismissed) {
-      this.showAndroidDownloadBanner.set(true);
+    const isDismissed = localStorage.getItem('pwa_install_banner_dismissed') === 'true';
+    if (this.pwaInstall.shouldOfferInstall() && !isDismissed) {
+      this.showInstallBanner.set(true);
     }
   }
 
-  dismissAndroidBanner() {
-    this.showAndroidDownloadBanner.set(false);
-    localStorage.setItem('android_banner_dismissed', 'true');
+  dismissInstallBanner() {
+    this.showInstallBanner.set(false);
+    localStorage.setItem('pwa_install_banner_dismissed', 'true');
+  }
+
+  installStepsKey(): string {
+    if (this.pwaInstall.isIos()) {
+      return 'install_app_steps_ios';
+    }
+    if (this.pwaInstall.isMobileWeb()) {
+      return 'install_app_steps_android';
+    }
+    return 'install_app_steps_desktop';
+  }
+
+  async installApp() {
+    const outcome = await this.pwaInstall.promptInstall();
+    if (outcome === 'accepted') {
+      this.showInstallBanner.set(false);
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: this.langService.t('install_app_banner_title'),
+      message: this.langService.t(this.installStepsKey()),
+      buttons: [this.langService.t('done')],
+    });
+    await alert.present();
   }
 
   // Event Handlers

@@ -45,6 +45,11 @@ services:
           type: web
           name: thekedari-api
           envVarKey: RENDER_EXTERNAL_URL
+      - key: WEB_URL
+        fromService:
+          type: web
+          name: thekedari-web
+          envVarKey: RENDER_EXTERNAL_URL
     routes:
       - type: redirect
         source: /download

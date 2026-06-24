@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   appName: 'Thekedari',
   webDir: 'www',
   server: {
-    url: 'https://thekedari-web.onrender.com',
+    url: 'https://thekedari-1.onrender.com',
     cleartext: false,
   },
 };

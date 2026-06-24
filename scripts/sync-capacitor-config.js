@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const webUrl = (process.env.WEB_URL || process.env.FRONTEND_URL || 'https://thekedari-web.onrender.com').replace(/\/$/, '');
+const { resolveWebUrl } = require('./web-url');
+const webUrl = resolveWebUrl();
 const useLive = process.env.CAPACITOR_LIVE !== 'false';
 
 const config = `import type { CapacitorConfig } from '@capacitor/cli';

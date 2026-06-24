@@ -1,0 +1,19 @@
+{
+  "name": "Thekedari",
+  "short_name": "Thekedari",
+  "description": "Labour & site management for contractors",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f0f",
+  "theme_color": "#ff9f0a",
+  "icons": [
+    {
+      "src": "assets/shapes.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

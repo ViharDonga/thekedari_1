@@ -1,19 +1,22 @@
 const fs = require('fs');
 const path = require('path');
+const { resolveWebUrl } = require('./web-url');
 
 const pkg = require('../package.json');
 const version = pkg.version;
 const parts = version.split('.').map((n) => parseInt(n, 10) || 0);
 const versionCode = parts[0] * 10000 + parts[1] * 100 + parts[2];
 
-const webUrl = (process.env.WEB_URL || process.env.FRONTEND_URL || 'https://thekedari-web.onrender.com').replace(/\/$/, '');
-const apkUrl = `${webUrl}/assets/thekedari.apk`;
+const webUrl = resolveWebUrl();
+const apkUrl = `${webUrl}/assets/thekedari.apk?v=${versionCode}`;
 
 const versionJson = {
   version,
   versionCode,
   apkUrl,
+  webUrl,
   releaseNotes: 'Latest features and fixes from Thekedari',
+  builtAt: new Date().toISOString(),
 };
 
 const assetsDir = path.join(__dirname, '..', 'src', 'assets');

@@ -8,12 +8,8 @@ let base = process.env.API_URL || 'https://thekedari-api.onrender.com';
 base = base.replace(/\/$/, '');
 const apiUrl = base.endsWith('/api') ? base : `${base}/api`;
 
-const webUrl = (
-  process.env.WEB_URL ||
-  process.env.FRONTEND_URL ||
-  process.env.RENDER_EXTERNAL_URL ||
-  'https://thekedari-web.onrender.com'
-).replace(/\/$/, '');
+const { resolveWebUrl } = require('./web-url');
+const webUrl = resolveWebUrl();
 
 const content = `export const environment = {
   production: true,
